@@ -2,23 +2,32 @@
 
 A clean and minimal NestJS application template.
 
-## ✨ Features
+## 🚀 Features
 
-- **Clean Architecture** - Minimal structure with clear separation of concerns
-- **RESTful API** - Basic "Hello World" endpoint
-- **Testing** - Unit and E2E tests with Jest
-- **TypeScript** - Full TypeScript support
-- **Code Quality** - ESLint and Prettier configuration
+- **NestJS 10+** with TypeScript strict mode
+- **Configuration Management** with environment validation
+- **Security Middleware** (Helmet, CORS, Rate Limiting)
+- **Comprehensive Logging** with Winston and request tracking
+- **Health Checks** for Kubernetes and load balancers
+- **API Documentation** with Swagger
+- **Database Layer** with Drizzle ORM and PostgreSQL
+- **Testing** with Jest and Supertest
+- **Code Quality** with ESLint, Prettier, and Husky
+- **Docker Support** with multi-stage builds
+- **CI/CD Pipeline** with GitHub Actions
 
 ## 🏗️ Project Structure
 
 ```
 src/
-├── app.module.ts          # Main application module
-├── app.controller.ts      # HTTP controller
-├── app.service.ts         # Business logic service
-├── main.ts               # Application entry point
-└── app.controller.spec.ts # Unit tests
+├── config/           # Configuration management
+├── database/         # Database layer (Drizzle ORM)
+├── health/           # Health check endpoints
+├── security/         # Security middleware & guards
+├── app.controller.ts # Main application controller
+├── app.service.ts    # Main application service
+├── app.module.ts     # Root application module
+└── main.ts          # Application entry point
 ```
 
 ## 🚀 Quick Start
@@ -142,3 +151,73 @@ This project is licensed under the MIT License.
 ---
 
 Built with ❤️ using [NestJS](https://nestjs.com/)
+
+## 🐳 Docker
+
+### Development
+
+```bash
+# Build and run with hot reload
+pnpm docker:compose:dev
+
+# Or manually
+pnpm docker:build
+pnpm docker:run
+```
+
+### Production
+
+```bash
+# Build and run production image
+pnpm docker:compose:prod
+
+# Or manually
+pnpm docker:build:prod
+pnpm docker:run:prod
+```
+
+### Database
+
+```bash
+# Start PostgreSQL database
+docker-compose -f docker-compose.db.yml up -d
+
+# Start with pgAdmin (optional)
+docker-compose -f docker-compose.db.yml up -d
+```
+
+### Docker Commands
+
+```bash
+# Build images
+pnpm docker:build          # Development build
+pnpm docker:build:prod     # Production build
+
+# Run containers
+pnpm docker:run            # Development container
+pnpm docker:run:prod       # Production container
+
+# Docker Compose
+pnpm docker:compose:dev    # Development stack
+pnpm docker:compose:prod   # Production stack
+pnpm docker:compose:down   # Stop all containers
+```
+
+## 🔧 Available Scripts
+
+| Script | Description |
+|--------|-------------|
+| `pnpm start` | Start application |
+| `pnpm start:dev` | Start in development mode |
+| `pnpm start:prod` | Start in production mode |
+| `pnpm build` | Build application |
+| `pnpm test` | Run unit tests |
+| `pnpm test:e2e` | Run e2e tests |
+| `pnpm lint` | Lint and fix code |
+| `pnpm format` | Format code with Prettier |
+| `pnpm quality` | Full quality check |
+| `pnpm docker:compose:dev` | Start development Docker stack |
+| `pnpm db:generate` | Generate database migrations |
+| `pnpm db:migrate` | Run database migrations |
+| `pnpm db:studio` | Open Drizzle Studio |
+| `pnpm db:push` | Push schema changes directly |
