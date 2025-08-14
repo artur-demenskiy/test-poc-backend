@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as rTracer from 'cls-rtracer';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/config.service';
 import { securityConfig } from './security/security.config';
@@ -11,6 +12,9 @@ async function bootstrap() {
 
   // Trust proxy for correct IP extraction (important for rate limiting behind proxy)
   app.set('trust proxy', true);
+
+  // Apply request ID middleware
+  app.use(rTracer.expressMiddleware());
 
   // Apply security middleware
   app.use(helmet(securityConfig.helmet));

@@ -28,6 +28,8 @@ export default [
         afterAll: 'readonly',
         jest: 'readonly',
         console: 'readonly',
+        // Node.js globals
+        process: 'readonly',
       },
     },
     plugins: {
