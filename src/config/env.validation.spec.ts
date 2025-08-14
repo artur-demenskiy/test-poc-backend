@@ -10,7 +10,7 @@ describe('Environment Validation', () => {
       };
 
       const result = envValidationSchema.safeParse(validEnv);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.PORT).toBe(3000);
@@ -23,7 +23,7 @@ describe('Environment Validation', () => {
       const envWithDefaults = {};
 
       const result = envValidationSchema.safeParse(envWithDefaults);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.PORT).toBe(3000);
@@ -38,7 +38,7 @@ describe('Environment Validation', () => {
       };
 
       const result = envValidationSchema.safeParse(envWithStringPort);
-      
+
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.PORT).toBe(8080);
@@ -101,7 +101,7 @@ describe('Environment Validation', () => {
       };
 
       const result = validateEnv(validEnv);
-      
+
       expect(result.PORT).toBe(3000);
       expect(result.NODE_ENV).toBe('production');
       expect(result.LOG_LEVEL).toBe('warn');
@@ -123,7 +123,7 @@ describe('Environment Validation', () => {
       };
 
       const result = validateEnv(partialEnv);
-      
+
       expect(result.PORT).toBe(3000); // default
       expect(result.NODE_ENV).toBe('test'); // provided
       expect(result.LOG_LEVEL).toBe('info'); // default
@@ -142,11 +142,11 @@ describe('Environment Validation', () => {
       expect(typeof env.PORT).toBe('number');
       expect(typeof env.NODE_ENV).toBe('string');
       expect(typeof env.LOG_LEVEL).toBe('string');
-      
+
       expect(env.PORT).toBeGreaterThan(0);
       expect(env.PORT).toBeLessThan(65536);
       expect(['development', 'production', 'test']).toContain(env.NODE_ENV);
       expect(['error', 'warn', 'info', 'debug', 'verbose']).toContain(env.LOG_LEVEL);
     });
   });
-}); 
+});

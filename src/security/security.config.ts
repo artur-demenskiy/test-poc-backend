@@ -1,5 +1,4 @@
-import { ThrottlerModuleOptions } from '@nestjs/throttler';
-import { seconds } from '@nestjs/throttler';
+import { ThrottlerModuleOptions, seconds } from '@nestjs/throttler';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { AppConfigService } from '../config/config.service';
 
@@ -31,9 +30,10 @@ export const securityConfig = {
    * CORS configuration
    */
   cors: (configService: AppConfigService): CorsOptions => ({
-    origin: configService.allowedOrigins.length > 0 
-      ? configService.allowedOrigins 
-      : ['http://localhost:3000', 'http://localhost:3001'],
+    origin:
+      configService.allowedOrigins.length > 0
+        ? configService.allowedOrigins
+        : ['http://localhost:3000', 'http://localhost:3001'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['Content-Length', 'X-Total-Count'],
@@ -66,4 +66,4 @@ export const securityConfig = {
     // Custom storage can be configured here if needed
     // storage: new RedisThrottlerStorage(),
   }),
-}; 
+};

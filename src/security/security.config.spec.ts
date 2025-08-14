@@ -25,11 +25,11 @@ describe('SecurityConfig', () => {
   describe('helmet', () => {
     it('should have correct helmet configuration', () => {
       const helmetConfig = securityConfig.helmet;
-      
+
       expect(helmetConfig.crossOriginEmbedderPolicy).toBe(false);
       expect(helmetConfig.contentSecurityPolicy).toBeDefined();
       expect(helmetConfig.contentSecurityPolicy.directives).toBeDefined();
-      
+
       const directives = helmetConfig.contentSecurityPolicy.directives;
       expect(directives.defaultSrc).toContain(`'self'`);
       expect(directives.styleSrc).toContain(`'unsafe-inline'`);
@@ -45,7 +45,7 @@ describe('SecurityConfig', () => {
 
     it('should return valid CORS options', () => {
       const corsOptions = securityConfig.cors(configService);
-      
+
       expect(corsOptions.methods).toContain('GET');
       expect(corsOptions.methods).toContain('POST');
       expect(corsOptions.methods).toContain('OPTIONS');
@@ -55,7 +55,7 @@ describe('SecurityConfig', () => {
 
     it('should use default origins when allowedOrigins is empty', () => {
       jest.spyOn(configService, 'allowedOrigins', 'get').mockReturnValue([]);
-      
+
       const corsOptions = securityConfig.cors(configService);
       expect(corsOptions.origin).toContain('http://localhost:3000');
       expect(corsOptions.origin).toContain('http://localhost:3001');
@@ -64,7 +64,7 @@ describe('SecurityConfig', () => {
     it('should use configured origins when available', () => {
       const customOrigins = ['https://example.com', 'https://test.com'];
       jest.spyOn(configService, 'allowedOrigins', 'get').mockReturnValue(customOrigins);
-      
+
       const corsOptions = securityConfig.cors(configService);
       expect(corsOptions.origin).toEqual(customOrigins);
     });
@@ -77,14 +77,14 @@ describe('SecurityConfig', () => {
 
     it('should return valid throttler options', () => {
       const throttlerOptions = securityConfig.throttler();
-      
+
       // Check that the function returns an object
       expect(typeof throttlerOptions).toBe('object');
       expect(throttlerOptions).toBeDefined();
-      
+
       // Basic validation that it's a valid configuration object
       expect(throttlerOptions).toHaveProperty('throttlers');
       expect(throttlerOptions).toHaveProperty('errorMessage');
     });
   });
-}); 
+});

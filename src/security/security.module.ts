@@ -10,9 +10,7 @@ import { ThrottlerBehindProxyGuard } from './throttler-behind-proxy.guard';
  * - Global ThrottlerBehindProxyGuard for all routes
  */
 @Module({
-  imports: [
-    ThrottlerModule.forRoot(securityConfig.throttler()),
-  ],
+  imports: [ThrottlerModule.forRoot(securityConfig.throttler())],
   providers: [
     {
       provide: APP_GUARD,
@@ -20,4 +18,4 @@ import { ThrottlerBehindProxyGuard } from './throttler-behind-proxy.guard';
     },
   ],
 })
-export class SecurityModule {} 
+export class SecurityModule {}

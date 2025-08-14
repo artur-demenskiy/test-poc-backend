@@ -35,7 +35,7 @@ describe('HealthController', () => {
   describe('healthz', () => {
     it('should return health check result', async () => {
       const result = await controller.healthz();
-      
+
       expect(healthCheckService.check).toHaveBeenCalledWith([]);
       expect(result).toEqual({
         status: 'ok',
@@ -49,7 +49,7 @@ describe('HealthController', () => {
   describe('readiness', () => {
     it('should return readiness check result', async () => {
       const result = await controller.readiness();
-      
+
       expect(healthCheckService.check).toHaveBeenCalledWith([]);
       expect(result).toEqual({
         status: 'ok',
@@ -59,4 +59,4 @@ describe('HealthController', () => {
       });
     });
   });
-}); 
+});

@@ -8,7 +8,7 @@ describe('ThrottlerBehindProxyGuard', () => {
     guard = new ThrottlerBehindProxyGuard(
       {} as any, // ThrottlerModuleOptions
       {} as any, // ThrottlerStorage
-      {} as any  // Reflector
+      {} as any // Reflector
     );
   });
 
@@ -46,4 +46,4 @@ describe('ThrottlerBehindProxyGuard', () => {
       expect(result).toBe('127.0.0.1');
     });
   });
-}); 
+});

@@ -7,29 +7,39 @@ import { EnvironmentVariables } from './env.validation';
  */
 @Injectable()
 export class AppConfigService {
-  constructor(
-    private readonly configService: NestConfigService<EnvironmentVariables, true>
-  ) {}
+  constructor(private readonly configService: NestConfigService<EnvironmentVariables, true>) {}
 
   /**
    * Get application port
    */
   get port(): number {
-    return this.configService.get('PORT', { infer: true })!;
+    const port = this.configService.get('PORT', { infer: true });
+    if (port === undefined) {
+      throw new Error('PORT environment variable is not set');
+    }
+    return port;
   }
 
   /**
    * Get current environment
    */
   get nodeEnv(): string {
-    return this.configService.get('NODE_ENV', { infer: true })!;
+    const nodeEnv = this.configService.get('NODE_ENV', { infer: true });
+    if (nodeEnv === undefined) {
+      throw new Error('NODE_ENV environment variable is not set');
+    }
+    return nodeEnv;
   }
 
   /**
    * Get log level
    */
   get logLevel(): string {
-    return this.configService.get('LOG_LEVEL', { infer: true })!;
+    const logLevel = this.configService.get('LOG_LEVEL', { infer: true });
+    if (logLevel === undefined) {
+      throw new Error('LOG_LEVEL environment variable is not set');
+    }
+    return logLevel;
   }
 
   /**
@@ -67,4 +77,4 @@ export class AppConfigService {
     const value = this.configService.get(key, defaultValue);
     return value ?? defaultValue;
   }
-} 
+}

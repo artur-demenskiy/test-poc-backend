@@ -25,4 +25,4 @@ describe('SecurityModule', () => {
       await moduleFixture.compile();
     }).not.toThrow();
   });
-}); 
+});

@@ -21,4 +21,4 @@ import { validateEnv } from './env.validation';
   providers: [AppConfigService],
   exports: [AppConfigService],
 })
-export class AppConfigModule {} 
+export class AppConfigModule {}
