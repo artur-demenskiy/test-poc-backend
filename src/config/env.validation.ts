@@ -19,6 +19,12 @@ export const envValidationSchema = z.object({
   LOG_LEVEL: z
     .enum(['error', 'warn', 'info', 'debug', 'verbose'])
     .default('info'),
+
+  // Security Configuration
+  ALLOWED_ORIGINS: z
+    .string()
+    .optional()
+    .transform((val) => val?.split(',').map(origin => origin.trim()) || []),
 });
 
 /**
