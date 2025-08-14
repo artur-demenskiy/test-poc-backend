@@ -1,0 +1,9 @@
+dist/
+node_modules/
+coverage/
+*.md
+*.yml
+*.yaml
+.env*
+package-lock.json
+pnpm-lock.yaml 
