@@ -1,6 +1,6 @@
 # NestJS Boilerplate
 
-Production-ready NestJS boilerplate with TypeScript, featuring comprehensive configuration, logging, validation, testing, Docker support, and CI/CD pipeline.
+Production-ready NestJS boilerplate with TypeScript, featuring comprehensive configuration, logging, validation, testing, Docker support, CI/CD pipeline, and database layer with Drizzle ORM.
 
 ## 🚀 Features
 
@@ -14,6 +14,7 @@ Production-ready NestJS boilerplate with TypeScript, featuring comprehensive con
 - **Documentation**: Swagger API docs at `/docs`
 - **Docker**: Multi-stage builds with non-root user
 - **CI/CD**: GitHub Actions with quality gates
+- **Database Layer**: Drizzle ORM with PostgreSQL
 
 ## 📋 Requirements
 
@@ -47,6 +48,14 @@ Create `.env` file based on `.env.example`:
 PORT=3000
 NODE_ENV=development
 LOG_LEVEL=debug
+
+# Database Configuration
+DATABASE_URL=postgresql://postgres:postgres@localhost:5433/nestjs_boilerplate
+DATABASE_HOST=localhost
+DATABASE_PORT=5433
+DATABASE_NAME=nestjs_boilerplate
+DATABASE_USER=postgres
+DATABASE_PASSWORD=postgres
 
 # CORS
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
@@ -87,6 +96,16 @@ pnpm docker:compose:prod
 # Or manually
 pnpm docker:build:prod
 pnpm docker:run:prod
+```
+
+### Database
+
+```bash
+# Start PostgreSQL database
+docker-compose -f docker-compose.db.yml up -d
+
+# Start with pgAdmin (optional)
+docker-compose -f docker-compose.db.yml up -d
 ```
 
 ### Docker Commands
@@ -157,6 +176,7 @@ Once the application is running, visit:
 ```
 src/
 ├── config/           # Configuration management
+├── database/         # Database layer (Drizzle ORM)
 ├── health/           # Health check endpoints
 ├── security/         # Security middleware & guards
 ├── app.controller.ts # Main application controller
@@ -179,6 +199,10 @@ src/
 | `pnpm format` | Format code with Prettier |
 | `pnpm quality` | Full quality check |
 | `pnpm docker:compose:dev` | Start development Docker stack |
+| `pnpm db:generate` | Generate database migrations |
+| `pnpm db:migrate` | Run database migrations |
+| `pnpm db:studio` | Open Drizzle Studio |
+| `pnpm db:push` | Push schema changes directly |
 
 ## 🚀 CI/CD Pipeline
 
@@ -237,3 +261,6 @@ For support and questions:
 - Create an issue in the repository
 - Check the [NestJS documentation](https://docs.nestjs.com/)
 - Review the [TypeScript documentation](https://www.typescriptlang.org/docs/)
+- Check the [DATABASE.md](DATABASE.md) for database setup
+
+Built with ❤️ using [NestJS](https://nestjs.com/)
