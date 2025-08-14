@@ -22,7 +22,14 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "quality": "pnpm lint:check && pnpm format:check && pnpm test && pnpm build",
-    "prepare": "husky install"
+    "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky install; fi",
+    "docker:build": "docker build -t nestjs-boilerplate .",
+    "docker:build:prod": "docker build --target runner -t nestjs-boilerplate:prod .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env nestjs-boilerplate",
+    "docker:run:prod": "docker run -p 3000:3000 --env-file .env nestjs-boilerplate:prod",
+    "docker:compose:dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "docker:compose:prod": "docker-compose -f docker-compose.prod.yml up --build",
+    "docker:compose:down": "docker-compose -f docker-compose.dev.yml -f docker-compose.prod.yml down"
   },
   "dependencies": {
     "@nestjs/axios": "^3.0.0",

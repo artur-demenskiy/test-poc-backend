@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AppConfigService } from './config/config.service';
 import { securityConfig } from './security/security.config';
@@ -20,6 +21,25 @@ async function bootstrap() {
   // Enable CORS with configuration
   app.enableCors(securityConfig.cors(configService));
 
+  // Swagger documentation setup
+  if (!configService.isProduction) {
+    const config = new DocumentBuilder()
+      .setTitle('NestJS Boilerplate API')
+      .setDescription('Production-ready NestJS boilerplate with TypeScript')
+      .setVersion('1.0.0')
+      .addTag('health', 'Health check endpoints')
+      .addTag('app', 'Application endpoints')
+      .build();
+
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: false,
+      },
+      customSiteTitle: 'NestJS Boilerplate API Docs',
+    });
+  }
+
   const port = configService.port;
 
   await app.listen(port);
@@ -28,6 +48,9 @@ async function bootstrap() {
   console.log(`🌍 Environment: ${configService.nodeEnv}`);
   console.log(`📝 Log Level: ${configService.logLevel}`);
   console.log(`🔒 Security: Helmet, CORS, Rate Limiting enabled`);
+  if (!configService.isProduction) {
+    console.log(`📚 API Documentation: http://localhost:${port}/docs`);
+  }
 }
 
 bootstrap();
