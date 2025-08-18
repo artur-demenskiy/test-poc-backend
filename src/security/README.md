@@ -1,61 +1,61 @@
 # Advanced Security Module
 
-Этот модуль предоставляет комплексную систему безопасности для NestJS приложений, включая API Key Management, IP Whitelist, Request Signing и XSS Protection.
+This module provides a comprehensive security system for NestJS applications, including API Key Management, IP Whitelist, Request Signing, and XSS Protection.
 
-## 🚀 Возможности
+## 🚀 Features
 
 ### 1. API Key Management
-- **Генерация и управление API ключами** с различными уровнями доступа
-- **Scope-based авторизация** для точного контроля над ресурсами
-- **Автоматическое истечение** ключей с настраиваемым временем жизни
-- **Отслеживание использования** ключей
+- **Generate and manage API keys** with different access levels
+- **Scope-based authorization** for precise resource control
+- **Automatic expiration** with configurable lifetime
+- **Usage tracking** for keys
 
 ### 2. IP Whitelist
-- **Контроль доступа по IP адресам** с поддержкой CIDR блоков
-- **IPv4 и IPv6 поддержка** для современных сетевых конфигураций
-- **Временные ограничения** для временного доступа
-- **Гибкая настройка** для различных сетевых сценариев
+- **Access control by IP addresses** with CIDR block support
+- **IPv4 and IPv6 support** for modern network configurations
+- **Temporal restrictions** for temporary access
+- **Flexible configuration** for various network scenarios
 
 ### 3. Request Signing
-- **HMAC-SHA256 подпись** для обеспечения целостности запросов
-- **Timestamp validation** для предотвращения replay атак
-- **Nonce поддержка** для уникальности каждого запроса
-- **Timing-safe comparison** для предотвращения timing атак
+- **HMAC-SHA256 signature** for request integrity
+- **Timestamp validation** to prevent replay attacks
+- **Nonce support** for request uniqueness
+- **Timing-safe comparison** to prevent timing attacks
 
 ### 4. XSS Protection
-- **Автоматическая санитизация** HTML и текстового контента
-- **Удаление опасных тегов** и атрибутов
-- **Валидация URL** для предотвращения injection атак
-- **Middleware интеграция** для автоматической защиты
+- **Automatic sanitization** of HTML and text content
+- **Removal of dangerous tags** and attributes
+- **URL validation** to prevent injection attacks
+- **Middleware integration** for automatic protection
 
-## 📋 Установка и настройка
+## 📋 Installation and Setup
 
-### 1. Добавьте переменные окружения
+### 1. Add environment variables
 
 ```env
 # Request Signing
 REQUEST_SIGNING_SECRET=your-super-secret-key-here
 
-# Database (уже настроено в основном проекте)
+# Database (already configured in main project)
 DATABASE_URL=postgresql://user:password@localhost:5432/dbname
 ```
 
-### 2. Модуль автоматически подключается к SecurityModule
+### 2. Module automatically connects to SecurityModule
 
 ```typescript
 // src/security/security.module.ts
 @Global()
 @Module({
-  // ... конфигурация
+  // ... configuration
 })
 export class SecurityModule {}
 ```
 
-## 🔧 Использование
+## 🔧 Usage
 
 ### API Key Management
 
-#### Создание API ключа
+#### Creating API Key
 ```typescript
 import { ApiKeyService } from './security/api-key/api-key.service';
 
@@ -78,7 +78,7 @@ export class YourService {
 }
 ```
 
-#### Защита endpoint'а с API ключом
+#### Protecting endpoint with API key
 ```typescript
 import { RequireApiKeyScope } from './security/api-key/api-key.guard';
 
@@ -87,7 +87,7 @@ export class UsersController {
   @Get()
   @RequireApiKeyScope('users', 'read')
   async getUsers() {
-    // Доступ только с API ключом, имеющим scope 'users:read'
+    // Access only with API key having scope 'users:read'
     return this.usersService.findAll();
   }
 }
@@ -95,7 +95,7 @@ export class UsersController {
 
 ### IP Whitelist
 
-#### Добавление IP в whitelist
+#### Adding IP to whitelist
 ```typescript
 import { IpWhitelistService } from './security/ip-whitelist/ip-whitelist.service';
 
@@ -115,7 +115,7 @@ export class YourService {
 }
 ```
 
-#### Защита endpoint'а по IP
+#### Protecting endpoint by IP
 ```typescript
 import { IpWhitelistGuard } from './security/ip-whitelist/ip-whitelist.guard';
 
@@ -124,7 +124,7 @@ export class AdminController {
   @Get('sensitive-data')
   @UseGuards(IpWhitelistGuard)
   async getSensitiveData() {
-    // Доступ только с whitelisted IP адресов
+    // Access only from whitelisted IP addresses
     return this.adminService.getSensitiveData();
   }
 }
@@ -132,23 +132,23 @@ export class AdminController {
 
 ### Request Signing
 
-#### Подпись запроса на клиенте
+#### Signing request on client
 ```typescript
-// Клиентский код (JavaScript/TypeScript)
+// Client code (JavaScript/TypeScript)
 const method = 'POST';
 const path = '/api/secure-endpoint';
 const body = JSON.stringify({ data: 'sensitive' });
 const timestamp = Math.floor(Date.now() / 1000).toString();
 const nonce = Math.random().toString(36).substring(2, 15);
 
-// Генерация подписи (HMAC-SHA256)
+// Generate signature (HMAC-SHA256)
 const payload = `${method}\n${path}\n${body}\n${timestamp}\n${nonce}`;
 const signature = crypto
   .createHmac('sha256', 'your-secret-key')
   .update(payload)
   .digest('hex');
 
-// Отправка запроса
+// Send request
 fetch('/api/secure-endpoint', {
   method: 'POST',
   headers: {
@@ -161,7 +161,7 @@ fetch('/api/secure-endpoint', {
 });
 ```
 
-#### Защита endpoint'а с подписью
+#### Protecting endpoint with signature
 ```typescript
 import { RequireSignature } from './security/request-signing/request-signing.guard';
 
@@ -170,7 +170,7 @@ export class ApiController {
   @Post('secure-endpoint')
   @RequireSignature()
   async secureEndpoint(@Body() data: any) {
-    // Доступ только с правильно подписанными запросами
+    // Access only with properly signed requests
     return { message: 'Request verified successfully' };
   }
 }
@@ -178,13 +178,13 @@ export class ApiController {
 
 ### XSS Protection
 
-#### Автоматическая защита через middleware
+#### Automatic protection through middleware
 ```typescript
-// Middleware автоматически подключается в SecurityModule
-// Все входящие запросы автоматически санитизируются
+// Middleware automatically connects in SecurityModule
+// All incoming requests are automatically sanitized
 ```
 
-#### Ручная санитизация
+#### Manual sanitization
 ```typescript
 import { XssProtectionService } from './security/xss-protection/xss-protection.service';
 
@@ -193,16 +193,16 @@ export class YourService {
   constructor(private readonly xssProtectionService: XssProtectionService) {}
 
   async processUserInput(userInput: string) {
-    // Санитизация HTML
+    // HTML sanitization
     const sanitizedHtml = this.xssProtectionService.sanitizeHtml(userInput, {
       allowedTags: ['b', 'i', 'em', 'strong'],
       stripEmpty: true
     });
 
-    // Санитизация текста
+    // Text sanitization
     const sanitizedText = this.xssProtectionService.sanitizeText(userInput);
 
-    // Проверка на опасный контент
+    // Check for dangerous content
     if (this.xssProtectionService.isPotentiallyDangerous(userInput)) {
       console.warn('Potentially dangerous content detected');
     }
@@ -212,20 +212,20 @@ export class YourService {
 }
 ```
 
-## 🛡️ Комбинированная защита
+## 🛡️ Combined Protection
 
-### Endpoint с полной защитой
+### Endpoint with full protection
 ```typescript
 @Post('super-secure')
 @UseGuards(ApiKeyGuard, IpWhitelistGuard)
 @RequireApiKeyScope('admin', 'full-access')
 @RequireSignature()
 async superSecureEndpoint(@Body() data: any) {
-  // Этот endpoint защищен:
-  // 1. API Key с правильным scope
-  // 2. IP адрес в whitelist
-  // 3. Правильно подписанный запрос
-  // 4. Автоматическая XSS защита через middleware
+  // This endpoint is protected by:
+  // 1. API Key with correct scope
+  // 2. IP address in whitelist
+  // 3. Properly signed request
+  // 4. Automatic XSS protection through middleware
   
   return { message: 'Maximum security achieved!' };
 }
@@ -234,55 +234,55 @@ async superSecureEndpoint(@Body() data: any) {
 ## 📊 API Endpoints
 
 ### Security Management
-- `POST /security/api-keys` - Создание API ключа
-- `GET /security/api-keys` - Получение списка API ключей
-- `DELETE /security/api-keys/:id` - Деактивация API ключа
+- `POST /security/api-keys` - Create API key
+- `GET /security/api-keys` - Get list of API keys
+- `DELETE /security/api-keys/:id` - Deactivate API key
 
 ### IP Whitelist
-- `POST /security/ip-whitelist` - Добавление IP в whitelist
-- `GET /security/ip-whitelist` - Получение списка whitelisted IP
-- `DELETE /security/ip-whitelist/:id` - Удаление IP из whitelist
-- `POST /security/ip-whitelist/:id/deactivate` - Деактивация IP записи
+- `POST /security/ip-whitelist` - Add IP to whitelist
+- `GET /security/ip-whitelist` - Get list of whitelisted IPs
+- `DELETE /security/ip-whitelist/:id` - Remove IP from whitelist
+- `POST /security/ip-whitelist/:id/deactivate` - Deactivate IP entry
 
-## 🔒 Безопасность
+## 🔒 Security
 
-### Лучшие практики
-1. **Используйте сильные секретные ключи** для request signing
-2. **Регулярно ротируйте API ключи** для критических операций
-3. **Ограничивайте scope'ы** API ключей минимально необходимыми правами
-4. **Мониторьте использование** API ключей и IP адресов
-5. **Логируйте все попытки доступа** для аудита
+### Best practices
+1. **Use strong secret keys** for request signing
+2. **Regularly rotate API keys** for critical operations
+3. **Limit API key scopes** to minimally necessary permissions
+4. **Monitor usage** of API keys and IP addresses
+5. **Log all access attempts** for audit
 
-### Мониторинг
-- Все попытки доступа логируются
-- XSS попытки автоматически детектируются
-- Неудачные попытки аутентификации отслеживаются
-- IP адреса проверяются на каждом защищенном запросе
+### Monitoring
+- All access attempts are logged
+- XSS attempts are automatically detected
+- Failed authentication attempts are tracked
+- IP addresses are checked on each protected request
 
 ## 🚨 Troubleshooting
 
-### Частые проблемы
+### Common issues
 
-1. **API Key не работает**
-   - Проверьте правильность ключа
-   - Убедитесь, что ключ активен и не истек
-   - Проверьте scope'ы ключа
+1. **API Key not working**
+   - Check key correctness
+   - Ensure key is active and not expired
+   - Verify key scopes
 
-2. **IP заблокирован**
-   - Проверьте IP адрес в whitelist
-   - Убедитесь, что запись активна и не истекла
-   - Проверьте CIDR блоки для сетевых диапазонов
+2. **IP blocked**
+   - Check IP address in whitelist
+   - Ensure entry is active and not expired
+   - Check CIDR blocks for network ranges
 
-3. **Request signature не проходит**
-   - Проверьте правильность секретного ключа
-   - Убедитесь, что timestamp не истек
-   - Проверьте уникальность nonce
+3. **Request signature not passing**
+   - Check secret key correctness
+   - Ensure timestamp hasn't expired
+   - Verify nonce uniqueness
 
-4. **XSS защита слишком строгая**
-   - Настройте allowedTags и allowedAttributes
-   - Используйте custom sanitization options
+4. **XSS protection too strict**
+   - Configure allowedTags and allowedAttributes
+   - Use custom sanitization options
 
-## 📚 Дополнительные ресурсы
+## 📚 Additional Resources
 
 - [NestJS Guards Documentation](https://docs.nestjs.com/guards)
 - [Drizzle ORM Documentation](https://orm.drizzle.team/)
