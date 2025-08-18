@@ -1,6 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SecurityModule } from './security.module';
 
+// Mock database connection
+jest.mock('../database/connection', () => ({
+  db: {
+    select: jest.fn(),
+    insert: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
 describe('SecurityModule', () => {
   let module: SecurityModule;
 

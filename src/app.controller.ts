@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { AppService } from './app.service';
 import { ApiKeyGuard, RequireApiKeyScope } from './security/api-key/api-key.guard';
@@ -11,7 +11,7 @@ import { RequestSigningService } from './security/request-signing/request-signin
 export class AppController {
   constructor(
     private readonly _appService: AppService,
-    private readonly requestSigningService: RequestSigningService
+    @Inject('RequestSigningService') private readonly requestSigningService: RequestSigningService
   ) {}
 
   @Get()

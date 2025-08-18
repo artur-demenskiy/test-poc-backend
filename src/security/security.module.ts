@@ -18,7 +18,6 @@ import { RequestSigningGuard } from './request-signing/request-signing.guard';
 
 // XSS Protection
 import { XssProtectionService } from './xss-protection/xss-protection.service';
-import { XssProtectionMiddleware } from './xss-protection/xss-protection.middleware';
 
 // Controllers
 import { ApiKeyController } from './api-key/api-key.controller';
@@ -63,7 +62,6 @@ import { IpWhitelistController } from './ip-whitelist/ip-whitelist.controller';
     ApiKeyGuard,
     IpWhitelistGuard,
     RequestSigningGuard,
-    XssProtectionMiddleware,
   ],
 })
 export class SecurityModule {}
