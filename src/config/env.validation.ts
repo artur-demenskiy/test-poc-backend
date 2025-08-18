@@ -21,6 +21,8 @@ export const envValidationSchema = z.object({
     .string()
     .optional()
     .transform(val => val?.split(',').map(origin => origin.trim()) || []),
+
+  REQUEST_SIGNING_SECRET: z.string().default('default-secret-key-change-in-production'),
 });
 
 /**
@@ -37,7 +39,9 @@ export function validateEnv(config: Record<string, unknown>): EnvironmentVariabl
   const result = envValidationSchema.safeParse(config);
 
   if (!result.success) {
+    // eslint-disable-next-line no-console
     console.error('❌ Invalid environment variables:');
+    // eslint-disable-next-line no-console
     console.error(result.error.format());
     throw new Error('Invalid environment variables');
   }
