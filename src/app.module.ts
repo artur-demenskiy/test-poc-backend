@@ -7,9 +7,10 @@ import { AppConfigModule } from './config/config.module';
 import { SecurityModule } from './security/security.module';
 import { LoggingModule } from './logging/logging.module';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
-  imports: [AppConfigModule, SecurityModule, HealthModule, LoggingModule],
+  imports: [AppConfigModule, SecurityModule, HealthModule, LoggingModule, RealtimeModule],
   controllers: [AppController],
   providers: [
     AppService,
