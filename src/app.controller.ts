@@ -6,6 +6,27 @@ import { IpWhitelistGuard } from './security/ip-whitelist/ip-whitelist.guard';
 import { RequireSignature } from './security/request-signing/request-signing.guard';
 import { RequestSigningService } from './security/request-signing/request-signing.service';
 
+/**
+ * Main Application Controller
+ *
+ * This controller demonstrates the comprehensive security features implemented:
+ * - Public endpoints with basic rate limiting
+ * - Secure endpoints with multiple security layers
+ * - API key authentication and scope-based access control
+ * - IP whitelist validation for network-level security
+ * - Request signing for integrity and authenticity verification
+ *
+ * Security Layers:
+ * ├── Rate Limiting: Global throttling for all endpoints
+ * ├── API Key Auth: Scope-based access control
+ * ├── IP Whitelist: Network-level access restrictions
+ * ├── Request Signing: HMAC-based request verification
+ * └── XSS Protection: Content sanitization and validation
+ *
+ * Endpoint Security Levels:
+ * - Public: Basic rate limiting only
+ * - Secure: Full security stack (API key + IP + signature)
+ */
 @ApiTags('app')
 @Controller()
 export class AppController {
@@ -14,6 +35,15 @@ export class AppController {
     @Inject('RequestSigningService') private readonly requestSigningService: RequestSigningService
   ) {}
 
+  /**
+   * Public hello endpoint
+   * Basic endpoint with no authentication requirements
+   *
+   * @returns Simple hello message string
+   *
+   * Security: Basic rate limiting only
+   * Access: Public (no authentication required)
+   */
   @Get()
   @ApiOperation({ summary: 'Get hello message' })
   @ApiResponse({
@@ -28,6 +58,25 @@ export class AppController {
     return this._appService.getHello();
   }
 
+  /**
+   * High-security endpoint demonstrating all security features
+   * Requires API key authentication, IP whitelist validation, and request signing
+   *
+   * @param _data - Request body data (processed securely)
+   * @returns Secure operation result with timestamp and nonce
+   *
+   * Security Features:
+   * - API Key: Requires 'secure:write' scope
+   * - IP Whitelist: Client IP must be in allowed list
+   * - Request Signing: HMAC signature verification required
+   * - Rate Limiting: Global throttling applied
+   *
+   * Required Headers:
+   * - X-API-Key: Valid API key with required scope
+   * - X-Signature: HMAC signature of request
+   * - X-Timestamp: Request timestamp for replay protection
+   * - X-Nonce: Unique nonce for request uniqueness
+   */
   @Post('secure-endpoint')
   @UseGuards(ApiKeyGuard, IpWhitelistGuard)
   @RequireApiKeyScope('secure', 'write')
@@ -62,6 +111,16 @@ export class AppController {
     };
   }
 
+  /**
+   * Public endpoint with basic security
+   * Accessible without authentication but protected by rate limiting
+   *
+   * @returns Public message with current timestamp
+   *
+   * Security: Basic rate limiting only
+   * Access: Public (no authentication required)
+   * Use Case: Public APIs, health checks, status endpoints
+   */
   @Get('public-endpoint')
   @ApiOperation({ summary: 'Public endpoint with basic rate limiting only' })
   @ApiResponse({
