@@ -2,17 +2,41 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue, Job, JobOptions } from 'bull';
 
+/**
+ * Generic job data interface for flexible job payloads
+ * Allows any key-value structure for job-specific data
+ */
 export interface JobData {
   [key: string]: unknown;
 }
 
+/**
+ * Standard job execution result format
+ * Provides consistent response structure across all job types
+ */
 export interface JobResult {
-  success: boolean;
-  data?: unknown;
-  error?: string;
-  duration?: number;
+  success: boolean; // Job execution success status
+  data?: unknown; // Job result data if successful
+  error?: string; // Error message if failed
+  duration?: number; // Job execution duration in milliseconds
 }
 
+/**
+ * Background job management service for distributed task processing
+ * Manages multiple job queues with different priorities and retry strategies
+ *
+ * Queue Types:
+ * - Email Queue: High priority, fast processing for user communications
+ * - Data Sync Queue: Medium priority, data synchronization operations
+ * - Cleanup Queue: Low priority, maintenance and cleanup tasks
+ *
+ * Features:
+ * - Priority-based job scheduling
+ * - Exponential backoff retry strategies
+ * - Queue health monitoring
+ * - Job lifecycle management
+ * - Comprehensive statistics and monitoring
+ */
 @Injectable()
 export class BackgroundJobsService {
   private readonly logger = new Logger(BackgroundJobsService.name);
@@ -24,18 +48,22 @@ export class BackgroundJobsService {
   ) {}
 
   /**
-   * Add email job to queue
+   * Add email job to high-priority queue
+   * Email jobs are processed first due to user experience requirements
+   * @param data - Job data payload
+   * @param options - Custom job options to override defaults
+   * @returns Created job instance
    */
   async addEmailJob(data: JobData, options: JobOptions = {}): Promise<Job> {
     try {
       const job = await this.emailQueue.add('send-email', data, {
-        priority: 1,
-        attempts: 3,
+        priority: 1, // Highest priority for user communications
+        attempts: 3, // Retry up to 3 times on failure
         backoff: {
-          type: 'exponential',
-          delay: 2000,
+          type: 'exponential', // Exponential backoff for retries
+          delay: 2000, // Start with 2 second delay
         },
-        ...options,
+        ...options, // Allow custom options to override defaults
       });
 
       this.logger.log(`Email job ${job.id} added to queue`);
@@ -47,18 +75,22 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Add data sync job to queue
+   * Add data synchronization job to medium-priority queue
+   * Data sync jobs handle background data processing and synchronization
+   * @param data - Job data payload
+   * @param options - Custom job options to override defaults
+   * @returns Created job instance
    */
   async addDataSyncJob(data: JobData, options: JobOptions = {}): Promise<Job> {
     try {
       const job = await this.dataSyncQueue.add('sync-data', data, {
-        priority: 2,
-        attempts: 3,
+        priority: 2, // Medium priority for data operations
+        attempts: 3, // Retry up to 3 times on failure
         backoff: {
-          type: 'exponential',
-          delay: 5000,
+          type: 'exponential', // Exponential backoff for retries
+          delay: 5000, // Start with 5 second delay
         },
-        ...options,
+        ...options, // Allow custom options to override defaults
       });
 
       this.logger.log(`Data sync job ${job.id} added to queue`);
@@ -70,18 +102,22 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Add cleanup job to queue
+   * Add cleanup job to low-priority queue
+   * Cleanup jobs handle maintenance tasks and can be delayed
+   * @param data - Job data payload
+   * @param options - Custom job options to override defaults
+   * @returns Created job instance
    */
   async addCleanupJob(data: JobData, options: JobOptions = {}): Promise<Job> {
     try {
       const job = await this.cleanupQueue.add('cleanup-data', data, {
-        priority: 3,
-        attempts: 2,
+        priority: 3, // Lowest priority for maintenance tasks
+        attempts: 2, // Fewer retries for cleanup operations
         backoff: {
-          type: 'exponential',
-          delay: 10000,
+          type: 'exponential', // Exponential backoff for retries
+          delay: 10000, // Start with 10 second delay
         },
-        ...options,
+        ...options, // Allow custom options to override defaults
       });
 
       this.logger.log(`Cleanup job ${job.id} added to queue`);
@@ -93,7 +129,10 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Get job by ID
+   * Retrieve job by ID from specified queue
+   * @param queueName - Name of the queue to search
+   * @param jobId - Unique job identifier
+   * @returns Job instance or null if not found
    */
   async getJob(queueName: string, jobId: string): Promise<Job | null> {
     try {
@@ -111,7 +150,12 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Get all jobs from queue
+   * Get jobs from queue by status with pagination support
+   * @param queueName - Name of the queue to query
+   * @param status - Job status filter (waiting, active, completed, etc.)
+   * @param start - Starting index for pagination
+   * @param end - Ending index for pagination
+   * @returns Array of jobs matching the criteria
    */
   async getJobs(
     queueName: string,
@@ -134,7 +178,10 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Remove job from queue
+   * Remove job from queue by ID
+   * @param queueName - Name of the queue containing the job
+   * @param jobId - Unique job identifier to remove
+   * @returns True if job was removed, false if not found
    */
   async removeJob(queueName: string, jobId: string): Promise<boolean> {
     try {
@@ -157,7 +204,9 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Pause queue
+   * Pause queue to stop processing new jobs
+   * Existing active jobs continue running, new jobs are queued but not processed
+   * @param queueName - Name of the queue to pause
    */
   async pauseQueue(queueName: string): Promise<void> {
     try {
@@ -175,7 +224,8 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Resume queue
+   * Resume paused queue to continue processing jobs
+   * @param queueName - Name of the queue to resume
    */
   async resumeQueue(queueName: string): Promise<void> {
     try {
@@ -193,7 +243,10 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Get queue statistics
+   * Get comprehensive statistics for a specific queue
+   * Provides counts for all job statuses and total queue metrics
+   * @param queueName - Name of the queue to get stats for
+   * @returns Queue statistics object
    */
   async getQueueStats(queueName: string): Promise<Record<string, unknown>> {
     try {
@@ -202,6 +255,7 @@ export class BackgroundJobsService {
         throw new Error(`Queue ${queueName} not found`);
       }
 
+      // Get counts for all job statuses concurrently
       const [waiting, active, completed, failed, delayed] = await Promise.all([
         queue.getWaiting(),
         queue.getActive(),
@@ -225,12 +279,15 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Get all queues statistics
+   * Get statistics for all managed queues
+   * Provides overview of all queue performance and status
+   * @returns Object containing stats for all queues
    */
   async getAllQueuesStats(): Promise<Record<string, Record<string, unknown>>> {
     const queues = ['email', 'data-sync', 'cleanup'];
     const stats: Record<string, Record<string, unknown>> = {};
 
+    // Collect stats for all queues
     for (const queueName of queues) {
       stats[queueName] = await this.getQueueStats(queueName);
     }
@@ -239,11 +296,16 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Clean completed and failed jobs
+   * Clean completed and failed jobs from queue
+   * Removes old jobs to prevent queue bloat and improve performance
+   * @param queueName - Name of the queue to clean
+   * @param grace - Grace period in milliseconds before cleaning (default: 24 hours)
+   * @param status - Job status to clean (default: completed)
+   * @returns Number of jobs cleaned from queue
    */
   async cleanQueue(
     queueName: string,
-    grace = 1000 * 60 * 60 * 24, // 24 hours
+    grace = 1000 * 60 * 60 * 24, // 24 hours default grace period
     status: 'completed' | 'failed' | 'wait' | 'active' | 'delayed' | 'paused' = 'completed'
   ): Promise<number> {
     try {
@@ -262,7 +324,10 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Get queue by name
+   * Get queue instance by name
+   * Maps queue names to their corresponding queue instances
+   * @param queueName - Name of the queue to retrieve
+   * @returns Queue instance or null if not found
    */
   private getQueueByName(queueName: string): Queue | null {
     switch (queueName) {
@@ -278,29 +343,33 @@ export class BackgroundJobsService {
   }
 
   /**
-   * Get all queue names
+   * Get list of all available queue names
+   * @returns Array of queue names managed by this service
    */
   getQueueNames(): string[] {
     return ['email', 'data-sync', 'cleanup'];
   }
 
   /**
-   * Check if queue is healthy
+   * Check if queue is healthy and functioning properly
+   * Analyzes queue metrics to determine health status
+   * @param queueName - Name of the queue to check
+   * @returns True if queue is healthy, false otherwise
    */
   async isQueueHealthy(queueName: string): Promise<boolean> {
     try {
       const stats = await this.getQueueStats(queueName);
       if (!stats) return false;
 
-      // Consider queue healthy if it's not completely stuck
+      // Extract queue metrics for health analysis
       const totalJobs = stats.total as number;
       const activeJobs = stats.active as number;
       const failedJobs = stats.failed as number;
 
-      // Queue is healthy if:
-      // 1. It has reasonable number of total jobs
-      // 2. Failed jobs are not more than 20% of total jobs
-      // 3. Active jobs are not stuck (less than 100)
+      // Queue health criteria:
+      // 1. Reasonable total job count (not overwhelmed)
+      // 2. Failed jobs should not exceed 20% of total jobs
+      // 3. Active jobs should not be stuck (less than 100)
       return totalJobs < 10000 && failedJobs / totalJobs < 0.2 && activeJobs < 100;
     } catch (error) {
       this.logger.error(`Failed to check queue health for ${queueName}:`, error);

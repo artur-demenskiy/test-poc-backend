@@ -1,68 +1,100 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { CachingService } from '../caching/caching.service';
 
+/**
+ * Comprehensive performance metrics for application monitoring
+ * Provides real-time insights into application performance and health
+ */
 export interface PerformanceMetrics {
-  requestCount: number;
-  averageResponseTime: number;
-  slowRequests: number;
-  errorCount: number;
-  cacheHitRate: number;
+  requestCount: number; // Total requests in time window
+  averageResponseTime: number; // Average response time in milliseconds
+  slowRequests: number; // Number of requests above warning threshold
+  errorCount: number; // Number of failed requests (4xx, 5xx)
+  cacheHitRate: number; // Cache hit rate percentage (0-1)
   memoryUsage: {
-    heapUsed: number;
-    heapTotal: number;
-    external: number;
-    rss: number;
+    heapUsed: number; // Current heap memory usage in bytes
+    heapTotal: number; // Total heap memory allocated in bytes
+    external: number; // External memory usage in bytes
+    rss: number; // Resident set size in bytes
   };
-  uptime: number;
-  timestamp: Date;
+  uptime: number; // Application uptime in seconds
+  timestamp: Date; // Metrics collection timestamp
 }
 
+/**
+ * Individual request performance data
+ * Captures detailed information about each HTTP request
+ */
 export interface RequestMetrics {
-  path: string;
-  method: string;
-  duration: number;
-  statusCode: number;
-  timestamp: Date;
-  userId?: string;
-  ip?: string;
-  userAgent?: string;
+  path: string; // Request path/endpoint
+  method: string; // HTTP method (GET, POST, etc.)
+  duration: number; // Request duration in milliseconds
+  statusCode: number; // HTTP response status code
+  timestamp: Date; // Request timestamp
+  userId?: string; // User ID if authenticated
+  ip?: string; // Client IP address
+  userAgent?: string; // Client user agent string
 }
 
+/**
+ * Configurable thresholds for slow request detection
+ * Defines warning, error, and critical response time levels
+ */
 export interface SlowRequestThresholds {
-  warning: number;
-  error: number;
-  critical: number;
+  warning: number; // Warning threshold in milliseconds
+  error: number; // Error threshold in milliseconds
+  critical: number; // Critical threshold in milliseconds
 }
 
+/**
+ * Performance monitoring service for application health tracking
+ * Collects, analyzes, and reports performance metrics in real-time
+ *
+ * Features:
+ * - Request performance tracking
+ * - Memory usage monitoring
+ * - Slow request detection and alerting
+ * - Performance trend analysis
+ * - Automated recommendations
+ * - Metrics export and reporting
+ */
 @Injectable()
 export class PerformanceService {
   private readonly logger = new Logger(PerformanceService.name);
+
+  // In-memory storage for request metrics (last 10,000 requests)
   private readonly requestMetrics: RequestMetrics[] = [];
+
+  // Configurable thresholds for slow request detection
   private readonly slowRequestThresholds: SlowRequestThresholds = {
-    warning: 1000,
-    error: 3000,
-    critical: 10000,
+    warning: 1000, // 1 second - warning level
+    error: 3000, // 3 seconds - error level
+    critical: 10000, // 10 seconds - critical level
   };
 
   constructor(private readonly cachingService: CachingService) {}
 
   /**
-   * Record request metrics
+   * Record performance metrics for a single request
+   * Stores request data and triggers slow request detection
+   * @param metrics - Request performance data to record
    */
   recordRequest(metrics: RequestMetrics): void {
     this.requestMetrics.push(metrics);
 
-    // Keep only recent metrics (last 10,000 requests)
+    // Maintain metrics array size to prevent memory bloat
     if (this.requestMetrics.length > 10000) {
       this.requestMetrics.splice(0, this.requestMetrics.length - 10000);
     }
 
-    // Check for slow requests
+    // Check if request exceeds slow request thresholds
     this.checkSlowRequest(metrics);
   }
 
   /**
-   * Get current performance metrics
+   * Get current performance metrics for the last 5 minutes
+   * Calculates real-time performance statistics
+   * @returns Current performance metrics object
    */
   getMetrics(): PerformanceMetrics {
     const memoryUsage = process.memoryUsage();
@@ -87,6 +119,7 @@ export class PerformanceService {
       };
     }
 
+    // Calculate performance statistics from recent metrics
     const totalDuration = recentMetrics.reduce((sum, metric) => sum + metric.duration, 0);
     const averageResponseTime = totalDuration / recentMetrics.length;
     const slowRequests = recentMetrics.filter(
@@ -94,7 +127,7 @@ export class PerformanceService {
     ).length;
     const errorCount = recentMetrics.filter(metric => metric.statusCode >= 400).length;
 
-    // Calculate cache hit rate (simplified - you might want to implement actual cache hit tracking)
+    // TODO: Implement actual cache hit rate calculation
     const cacheHitRate = 0.85; // Placeholder value
 
     return {
@@ -115,7 +148,11 @@ export class PerformanceService {
   }
 
   /**
-   * Get metrics for a specific time range
+   * Get performance metrics for a specific time range
+   * Useful for historical analysis and trend detection
+   * @param startTime - Start of time range
+   * @param endTime - End of time range
+   * @returns Array of metrics within the specified time range
    */
   getMetricsForTimeRange(startTime: Date, endTime: Date): RequestMetrics[] {
     return this.requestMetrics.filter(
@@ -124,7 +161,11 @@ export class PerformanceService {
   }
 
   /**
-   * Get metrics for a specific endpoint
+   * Get performance metrics for a specific endpoint
+   * Allows endpoint-specific performance analysis
+   * @param path - Request path to filter by
+   * @param method - Optional HTTP method filter
+   * @returns Array of metrics for the specified endpoint
    */
   getMetricsForEndpoint(path: string, method?: string): RequestMetrics[] {
     return this.requestMetrics.filter(metric => {
@@ -134,7 +175,10 @@ export class PerformanceService {
   }
 
   /**
-   * Get slow requests above threshold
+   * Get all requests that exceed performance thresholds
+   * Identifies problematic requests for optimization
+   * @param threshold - Custom threshold in milliseconds (optional)
+   * @returns Array of slow request metrics
    */
   getSlowRequests(threshold?: number): RequestMetrics[] {
     const actualThreshold = threshold || this.slowRequestThresholds.warning;
@@ -142,14 +186,18 @@ export class PerformanceService {
   }
 
   /**
-   * Get error requests
+   * Get all failed requests for error analysis
+   * Filters requests with 4xx and 5xx status codes
+   * @returns Array of error request metrics
    */
   getErrorRequests(): RequestMetrics[] {
     return this.requestMetrics.filter(metric => metric.statusCode >= 400);
   }
 
   /**
-   * Get performance summary with trends and recommendations
+   * Get comprehensive performance summary with trends and recommendations
+   * Provides actionable insights for performance optimization
+   * @returns Performance summary with current metrics, trends, and recommendations
    */
   async getPerformanceSummary(): Promise<{
     current: PerformanceMetrics;
@@ -172,7 +220,9 @@ export class PerformanceService {
   }
 
   /**
-   * Set slow request thresholds
+   * Update slow request detection thresholds
+   * Allows dynamic adjustment of performance monitoring sensitivity
+   * @param thresholds - New threshold values to apply
    */
   setSlowRequestThresholds(thresholds: Partial<SlowRequestThresholds>): void {
     Object.assign(this.slowRequestThresholds, thresholds);
@@ -183,13 +233,15 @@ export class PerformanceService {
 
   /**
    * Get current slow request thresholds
+   * @returns Copy of current threshold configuration
    */
   getSlowRequestThresholds(): SlowRequestThresholds {
     return { ...this.slowRequestThresholds };
   }
 
   /**
-   * Clear all metrics
+   * Clear all stored performance metrics
+   * Resets metrics collection for fresh monitoring
    */
   clearMetrics(): void {
     this.requestMetrics.length = 0;
@@ -197,7 +249,9 @@ export class PerformanceService {
   }
 
   /**
-   * Export metrics as JSON string
+   * Export all metrics as JSON string
+   * Useful for external analysis and reporting
+   * @returns JSON string containing all metrics and configuration
    */
   exportMetrics(): string {
     return JSON.stringify(
@@ -212,7 +266,9 @@ export class PerformanceService {
   }
 
   /**
-   * Check if request is slow and log warning
+   * Check if request exceeds slow request thresholds
+   * Logs appropriate warnings based on threshold levels
+   * @param metrics - Request metrics to check
    */
   private checkSlowRequest(metrics: RequestMetrics): void {
     if (metrics.duration > this.slowRequestThresholds.critical) {
@@ -231,7 +287,10 @@ export class PerformanceService {
   }
 
   /**
-   * Get recent metrics within time window
+   * Get metrics within a specified time window
+   * Filters metrics by timestamp for time-based analysis
+   * @param timeWindowMs - Time window in milliseconds
+   * @returns Array of metrics within the time window
    */
   private getRecentMetrics(timeWindowMs: number): RequestMetrics[] {
     const cutoffTime = Date.now() - timeWindowMs;
@@ -239,7 +298,9 @@ export class PerformanceService {
   }
 
   /**
-   * Calculate performance trends
+   * Calculate performance trends by comparing recent vs previous metrics
+   * Analyzes response time, error rate, and throughput changes
+   * @returns Trend indicators for key performance metrics
    */
   private calculateTrends(): {
     responseTime: 'improving' | 'stable' | 'degrading';
@@ -257,19 +318,22 @@ export class PerformanceService {
       };
     }
 
+    // Calculate response time trends
     const recentAvgResponseTime =
       recentMetrics.reduce((sum, metric) => sum + metric.duration, 0) / recentMetrics.length;
     const previousAvgResponseTime =
       previousMetrics.reduce((sum, metric) => sum + metric.duration, 0) / previousMetrics.length;
     const responseTimeChange = recentAvgResponseTime - previousAvgResponseTime;
 
+    // Calculate error rate trends
     const recentErrorRate =
       recentMetrics.filter(metric => metric.statusCode >= 400).length / recentMetrics.length;
     const previousErrorRate =
       previousMetrics.filter(metric => metric.statusCode >= 400).length / previousMetrics.length;
     const errorRateChange = recentErrorRate - previousErrorRate;
 
-    const recentThroughput = recentMetrics.length / 5; // requests per minute
+    // Calculate throughput trends (requests per minute)
+    const recentThroughput = recentMetrics.length / 5;
     const previousThroughput = previousMetrics.length / 5;
     const throughputChange = recentThroughput - previousThroughput;
 
@@ -284,7 +348,11 @@ export class PerformanceService {
   }
 
   /**
-   * Generate performance recommendations
+   * Generate performance optimization recommendations
+   * Analyzes current metrics and trends to provide actionable advice
+   * @param metrics - Current performance metrics
+   * @param trends - Performance trend indicators
+   * @returns Array of optimization recommendations
    */
   private generateRecommendations(
     metrics: PerformanceMetrics,
@@ -307,7 +375,7 @@ export class PerformanceService {
 
     // Memory usage recommendations
     if (metrics.memoryUsage.heapUsed > 100 * 1024 * 1024) {
-      // 100MB
+      // 100MB threshold
       recommendations.push('High memory usage detected, consider memory optimization');
     }
 

@@ -3,16 +3,32 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { RedisService } from './redis.service';
 
+/**
+ * Cache configuration options for flexible caching behavior
+ * Provides TTL, prefix, and tag-based invalidation support
+ */
 export interface CacheOptions {
-  ttl?: number;
-  prefix?: string;
-  tags?: string[];
+  ttl?: number; // Time to live in seconds
+  prefix?: string; // Key prefix for bulk operations
+  tags?: string[]; // Cache tags for selective invalidation
 }
 
+/**
+ * Core caching service for application-wide data caching
+ * Provides unified interface for cache operations with Redis backend support
+ *
+ * Features:
+ * - Multi-level caching (memory + Redis)
+ * - Tag-based cache invalidation
+ * - Automatic TTL management
+ * - Bulk operations support
+ * - Cache statistics and monitoring
+ * - Fallback handling for cache failures
+ */
 @Injectable()
 export class CachingService {
   private readonly logger = new Logger(CachingService.name);
-  private readonly defaultTtl = 3600; // 1 hour
+  private readonly defaultTtl = 3600; // 1 hour default TTL
 
   constructor(
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
@@ -20,7 +36,10 @@ export class CachingService {
   ) {}
 
   /**
-   * Get value from cache
+   * Retrieve value from cache by key
+   * Attempts to get value from cache manager with error handling
+   * @param key - Cache key to retrieve
+   * @returns Cached value or null if not found/error
    */
   async get<T>(key: string): Promise<T | null> {
     try {
@@ -33,14 +52,18 @@ export class CachingService {
   }
 
   /**
-   * Set value in cache
+   * Store value in cache with optional configuration
+   * Sets value in cache manager and stores associated tags in Redis if available
+   * @param key - Cache key to store value under
+   * @param value - Value to cache (will be serialized)
+   * @param options - Cache configuration options
    */
   async set(key: string, value: unknown, options: CacheOptions = {}): Promise<void> {
     try {
       const ttl = options.ttl || this.defaultTtl;
       await this.cacheManager.set(key, value, ttl);
 
-      // Store cache tags if Redis is available
+      // Store cache tags in Redis for tag-based invalidation
       if (options.tags && options.tags.length > 0 && this.redisService.isConnected()) {
         await this.redisService.storeCacheTags(key, options.tags);
       }
@@ -53,18 +76,22 @@ export class CachingService {
   }
 
   /**
-   * Delete value from cache
+   * Remove value from cache by key or prefix
+   * Supports both single key deletion and bulk prefix-based deletion
+   * @param key - Cache key to delete, or prefix for bulk deletion
+   * @param prefix - Optional prefix for bulk deletion operations
    */
   async delete(key: string, prefix?: string): Promise<void> {
     try {
       if (prefix) {
-        // Delete all keys with prefix
+        // Delete all keys matching the prefix
         const keys = await this.getKeysByPrefix(prefix);
         for (const k of keys) {
           await this.cacheManager.del(k);
         }
         this.logger.debug(`Deleted ${keys.length} cache keys with prefix: ${prefix}`);
       } else {
+        // Delete single key
         await this.cacheManager.del(key);
         this.logger.debug(`Cache deleted: ${key}`);
       }
@@ -75,13 +102,15 @@ export class CachingService {
   }
 
   /**
-   * Clear all cache
+   * Clear entire cache
+   * Resets cache manager and flushes Redis if available
+   * Use with caution in production environments
    */
   async clear(): Promise<void> {
     try {
       await this.cacheManager.reset();
 
-      // Clear Redis if available
+      // Clear Redis data if available
       if (this.redisService.isConnected()) {
         await this.redisService.flushAll();
       }
@@ -94,7 +123,9 @@ export class CachingService {
   }
 
   /**
-   * Get cache statistics
+   * Get cache statistics and memory usage
+   * Returns key count and memory usage from Redis if available
+   * @returns Cache statistics object
    */
   async getStats(): Promise<{ keys: number; memory?: string }> {
     try {
@@ -102,7 +133,7 @@ export class CachingService {
         return await this.redisService.getStats();
       }
 
-      // Fallback to basic stats
+      // Fallback to basic stats when Redis unavailable
       return { keys: 0 };
     } catch (error) {
       this.logger.error('Failed to get cache stats:', error);
@@ -111,7 +142,10 @@ export class CachingService {
   }
 
   /**
-   * Invalidate cache by tags
+   * Invalidate cache entries by tags
+   * Removes all cache keys associated with specified tags
+   * Requires Redis backend for tag-based invalidation
+   * @param tags - Array of tags to invalidate
    */
   async invalidateByTags(tags: string[]): Promise<void> {
     try {
@@ -120,8 +154,10 @@ export class CachingService {
         return;
       }
 
+      // Get all keys associated with the specified tags
       const keysToDelete = await this.redisService.getKeysByTags(tags);
 
+      // Delete each associated key from cache
       for (const key of keysToDelete) {
         await this.cacheManager.del(key);
       }
@@ -136,7 +172,13 @@ export class CachingService {
   }
 
   /**
-   * Get or set value in cache
+   * Get or set pattern for common caching scenarios
+   * Attempts to retrieve from cache first, falls back to callback execution
+   * Automatically caches the result for future requests
+   * @param key - Cache key for the operation
+   * @param callback - Function to execute if cache miss
+   * @param options - Cache configuration options
+   * @returns Cached value or callback result
    */
   async getOrSet<T>(
     key: string,
@@ -151,7 +193,7 @@ export class CachingService {
         return cachedValue;
       }
 
-      // If not in cache, execute callback and store result
+      // Cache miss - execute callback and store result
       this.logger.debug(`Cache miss: ${key}`);
       const value = await callback();
       await this.set(key, value, options);
@@ -164,11 +206,13 @@ export class CachingService {
   }
 
   /**
-   * Check if cache is available
+   * Check if cache system is available and functioning
+   * Performs a test write/read operation to verify cache health
+   * @returns True if cache is operational, false otherwise
    */
   async isAvailable(): Promise<boolean> {
     try {
-      // Try to set and get a test value
+      // Perform a test operation to verify cache functionality
       const testKey = '__cache_test__';
       const testValue = 'test';
 
@@ -184,17 +228,21 @@ export class CachingService {
   }
 
   /**
-   * Get all keys with a specific prefix
+   * Get all cache keys matching a specific prefix
+   * Uses Redis SCAN for efficient prefix-based key discovery
+   * @param prefix - Key prefix to search for
+   * @returns Array of matching cache keys
    */
   private async getKeysByPrefix(prefix: string): Promise<string[]> {
     try {
       if (this.redisService.isConnected()) {
-        // Use Redis SCAN for better performance
+        // Use Redis SCAN for better performance with large datasets
         const client = this.redisService.getClient();
         if (client) {
           const keys: string[] = [];
           let cursor = '0';
 
+          // Scan through all keys matching the prefix
           do {
             const result = await client.scan(cursor, 'MATCH', `${prefix}*`, 'COUNT', '100');
             cursor = result[0];
@@ -205,7 +253,7 @@ export class CachingService {
         }
       }
 
-      // Fallback: return empty array
+      // Fallback: return empty array when Redis unavailable
       return [];
     } catch (error) {
       this.logger.warn(`Failed to get keys by prefix ${prefix}:`, error);

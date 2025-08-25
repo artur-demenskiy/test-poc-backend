@@ -6,6 +6,32 @@ import { EmailProcessor } from './processors/email.processor';
 import { DataSyncProcessor } from './processors/data-sync.processor';
 import { CleanupProcessor } from './processors/cleanup.processor';
 
+/**
+ * Global Background Jobs Module for distributed task processing
+ *
+ * This module provides robust background job processing capabilities using Bull queues:
+ * - Priority-based job scheduling
+ * - Automatic retry mechanisms with exponential backoff
+ * - Redis-based job persistence and distribution
+ * - Multiple specialized job queues for different task types
+ *
+ * Queue Configuration:
+ * - Email Queue: High priority (1) for user communications
+ * - Data Sync Queue: Medium priority (2) for data operations
+ * - Cleanup Queue: Low priority (3) for maintenance tasks
+ *
+ * Features:
+ * - Redis connection with fallback to in-memory queues
+ * - Configurable retry strategies and backoff policies
+ * - Job lifecycle management and monitoring
+ * - Stalled job detection and recovery
+ * - Comprehensive job statistics and health monitoring
+ *
+ * Redis Configuration:
+ * - Automatic connection management with retry logic
+ * - Optimized connection parameters for production use
+ * - Graceful fallback for development environments
+ */
 @Global()
 @Module({
   imports: [
@@ -15,23 +41,24 @@ import { CleanupProcessor } from './processors/cleanup.processor';
         const redisUrl = configService.get<string>('REDIS_URL');
 
         if (redisUrl) {
+          // Production Redis configuration with optimized settings
           return {
             redis: {
-              url: redisUrl,
-              maxRetriesPerRequest: 3,
-              enableReadyCheck: false,
-              retryDelayOnFailover: 100,
-              connectTimeout: 10000,
-              commandTimeout: 5000,
-              keepAlive: 30000,
+              url: redisUrl, // Redis connection URL
+              maxRetriesPerRequest: 3, // Maximum retries per Redis request
+              enableReadyCheck: false, // Disable ready check for better performance
+              retryDelayOnFailover: 100, // Retry delay on failover (ms)
+              connectTimeout: 10000, // Connection timeout (ms)
+              commandTimeout: 5000, // Command timeout (ms)
+              keepAlive: 30000, // Keep-alive interval (ms)
             },
             defaultJobOptions: {
               removeOnComplete: 100, // Keep last 100 completed jobs
               removeOnFail: 50, // Keep last 50 failed jobs
               attempts: 3, // Retry failed jobs 3 times
               backoff: {
-                type: 'exponential',
-                delay: 2000, // Start with 2 seconds
+                type: 'exponential', // Exponential backoff strategy
+                delay: 2000, // Start with 2 seconds delay
               },
             },
             settings: {
@@ -40,16 +67,16 @@ import { CleanupProcessor } from './processors/cleanup.processor';
             },
           };
         } else {
-          // Fallback to in-memory queue (for development without Redis)
+          // Fallback to in-memory queue for development without Redis
           return {
-            redis: false,
+            redis: false, // Disable Redis, use in-memory
             defaultJobOptions: {
-              removeOnComplete: 100,
-              removeOnFail: 50,
-              attempts: 3,
+              removeOnComplete: 100, // Keep last 100 completed jobs
+              removeOnFail: 50, // Keep last 50 failed jobs
+              attempts: 3, // Retry failed jobs 3 times
               backoff: {
-                type: 'exponential',
-                delay: 2000,
+                type: 'exponential', // Exponential backoff strategy
+                delay: 2000, // Start with 2 seconds delay
               },
             },
           };
@@ -57,31 +84,41 @@ import { CleanupProcessor } from './processors/cleanup.processor';
       },
       inject: [ConfigService],
     }),
+
+    // Register specialized job queues with priority-based configuration
     BullModule.registerQueue(
       {
-        name: 'email',
+        name: 'email', // High-priority email processing queue
         defaultJobOptions: {
-          priority: 1, // High priority for emails
-          delay: 0,
+          priority: 1, // Highest priority for user communications
+          delay: 0, // No delay, process immediately
         },
       },
       {
-        name: 'data-sync',
+        name: 'data-sync', // Medium-priority data synchronization queue
         defaultJobOptions: {
-          priority: 2, // Medium priority for data sync
-          delay: 0,
+          priority: 2, // Medium priority for data operations
+          delay: 0, // No delay, process immediately
         },
       },
       {
-        name: 'cleanup',
+        name: 'cleanup', // Low-priority maintenance queue
         defaultJobOptions: {
-          priority: 3, // Low priority for cleanup tasks
-          delay: 0,
+          priority: 3, // Lowest priority for cleanup tasks
+          delay: 0, // No delay, process immediately
         },
       }
     ),
   ],
-  providers: [BackgroundJobsService, EmailProcessor, DataSyncProcessor, CleanupProcessor],
-  exports: [BackgroundJobsService, BullModule],
+  providers: [
+    BackgroundJobsService, // Core job management service
+    EmailProcessor, // Email job processor
+    DataSyncProcessor, // Data synchronization processor
+    CleanupProcessor, // Cleanup and maintenance processor
+  ],
+  exports: [
+    BackgroundJobsService, // Export for use in other modules
+    BullModule, // Export Bull functionality
+  ],
 })
 export class BackgroundJobsModule {}
