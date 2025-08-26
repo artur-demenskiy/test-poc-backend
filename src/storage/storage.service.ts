@@ -1,9 +1,9 @@
 /**
  * Storage Service - Central service for managing multiple storage providers
- * 
+ *
  * This service provides a unified interface to multiple storage providers,
  * including automatic provider selection, fallback mechanisms, and health monitoring.
- * 
+ *
  * Key Features:
  * - Multi-provider management with automatic selection
  * - Health monitoring and automatic fallback
@@ -13,7 +13,6 @@
  */
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Readable } from 'stream';
 import { setInterval, clearInterval } from 'timers';
 import {
   IStorageProvider,
@@ -64,10 +63,10 @@ export interface StorageProviderConfig {
 
 /**
  * Storage Service - Central service for managing multiple storage providers
- * 
+ *
  * This service provides a unified interface to multiple storage providers,
  * including automatic provider selection, fallback mechanisms, and health monitoring.
- * 
+ *
  * Key Features:
  * - Multi-provider management with automatic selection
  * - Health monitoring and automatic fallback
@@ -88,7 +87,7 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
     private readonly s3Provider: S3StorageProvider,
     private readonly supabaseProvider: SupabaseStorageProvider,
     private readonly gcsProvider: GCSStorageProvider,
-    private readonly minioProvider: MinIOStorageProvider,
+    private readonly minioProvider: MinIOStorageProvider
   ) {
     this.primaryProvider = this.configService.get<string>('STORAGE_PRIMARY_PROVIDER', 's3');
     this.currentProvider = this.primaryProvider;
@@ -205,15 +204,14 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
    */
   getBestProvider(): IStorageProvider | null {
     // Sort providers by priority and health status
-    const sortedProviders = Array.from(this.providers.values())
-      .sort((a, b) => {
-        // Healthy providers first
-        if (a.healthy !== b.healthy) {
-          return a.healthy ? -1 : 1;
-        }
-        // Then by priority
-        return a.priority - b.priority;
-      });
+    const sortedProviders = Array.from(this.providers.values()).sort((a, b) => {
+      // Healthy providers first
+      if (a.healthy !== b.healthy) {
+        return a.healthy ? -1 : 1;
+      }
+      // Then by priority
+      return a.priority - b.priority;
+    });
 
     return sortedProviders[0]?.provider || null;
   }
@@ -244,7 +242,7 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
         const healthy = await this.isProviderHealthy(name);
         config.healthy = healthy;
         config.lastHealthCheck = new Date();
-        
+
         if (!healthy) {
           this.logger.warn(`Storage provider ${name} is unhealthy`);
         }
@@ -286,8 +284,8 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
       throw new Error(`Provider ${providerName} not found`);
     }
 
-    const config = this.providers.get(providerName)!;
-    if (!config.healthy) {
+    const config = this.providers.get(providerName);
+    if (!config?.healthy) {
       throw new Error(`Provider ${providerName} is not healthy`);
     }
 
@@ -379,7 +377,9 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
       // Try fallback to another provider
       const fallbackProvider = this.getBestProvider();
       if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Exists check failed on ${this.currentProvider}, trying fallback provider`);
+        this.logger.warn(
+          `Exists check failed on ${this.currentProvider}, trying fallback provider`
+        );
         return await fallbackProvider.exists(filePath);
       }
       throw error;
@@ -401,7 +401,9 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
       // Try fallback to another provider
       const fallbackProvider = this.getBestProvider();
       if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Get metadata failed on ${this.currentProvider}, trying fallback provider`);
+        this.logger.warn(
+          `Get metadata failed on ${this.currentProvider}, trying fallback provider`
+        );
         return await fallbackProvider.getMetadata(filePath);
       }
       throw error;
@@ -423,7 +425,9 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
       // Try fallback to another provider
       const fallbackProvider = this.getBestProvider();
       if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Update metadata failed on ${this.currentProvider}, trying fallback provider`);
+        this.logger.warn(
+          `Update metadata failed on ${this.currentProvider}, trying fallback provider`
+        );
         return await fallbackProvider.updateMetadata(filePath, metadata);
       }
       throw error;
@@ -467,7 +471,9 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
       // Try fallback to another provider
       const fallbackProvider = this.getBestProvider();
       if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Generate URL failed on ${this.currentProvider}, trying fallback provider`);
+        this.logger.warn(
+          `Generate URL failed on ${this.currentProvider}, trying fallback provider`
+        );
         return await fallbackProvider.generateUrl(options);
       }
       throw error;
@@ -625,7 +631,7 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
    */
   private startHealthChecks(): void {
     const interval = this.configService.get<number>('STORAGE_HEALTH_CHECK_INTERVAL', 30000); // 30 seconds
-    
+
     this.healthCheckInterval = setInterval(async () => {
       await this.performHealthCheck();
     }, interval);
@@ -643,4 +649,4 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
       this.logger.log('Stopped health checks');
     }
   }
-} 
+}

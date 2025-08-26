@@ -1,10 +1,10 @@
 /**
  * Supabase Storage Provider
- * 
+ *
  * This provider implements the IStorageProvider interface for Supabase Storage.
  * It provides comprehensive file management capabilities including upload, download,
  * deletion, metadata management, and access control using Supabase's storage API.
- * 
+ *
  * Key Features:
  * - Direct Supabase integration using Supabase JS client
  * - Row Level Security (RLS) support for access control
@@ -12,13 +12,13 @@
  * - Built-in image transformations and processing
  * - Comprehensive metadata management
  * - Error handling and retry logic
- * 
+ *
  * Configuration Requirements:
  * - SUPABASE_URL: Supabase project URL
  * - SUPABASE_ANON_KEY: Supabase anonymous key
  * - SUPABASE_SERVICE_ROLE_KEY: Supabase service role key (for admin operations)
  * - STORAGE_SUPABASE_BUCKET_NAME: Storage bucket name
- * 
+ *
  * Supported Operations:
  * ├── File Management: upload, download, delete, exists
  * ├── Metadata: getMetadata, updateMetadata, listFiles
@@ -78,7 +78,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   constructor(configService: ConfigService) {
     super();
-    
+
     // Initialize Supabase configuration
     this.supabaseConfig = {
       url: configService.get<string>('SUPABASE_URL', ''),
@@ -93,27 +93,32 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
     this.supabaseUrl = this.supabaseConfig.url;
 
     // Validate required configuration
-    if (!this.supabaseConfig.url || !this.supabaseConfig.anonKey || !this.supabaseConfig.bucketName) {
-      throw new Error('Missing required Supabase configuration: SUPABASE_URL, SUPABASE_ANON_KEY, or STORAGE_SUPABASE_BUCKET_NAME');
+    if (
+      !this.supabaseConfig.url ||
+      !this.supabaseConfig.anonKey ||
+      !this.supabaseConfig.bucketName
+    ) {
+      throw new Error(
+        'Missing required Supabase configuration: SUPABASE_URL, SUPABASE_ANON_KEY, or STORAGE_SUPABASE_BUCKET_NAME'
+      );
     }
 
     // Initialize Supabase clients
-    this.supabaseClient = createClient(
-      this.supabaseConfig.url,
-      this.supabaseConfig.anonKey
-    );
+    this.supabaseClient = createClient(this.supabaseConfig.url, this.supabaseConfig.anonKey);
 
     this.supabaseAdminClient = createClient(
       this.supabaseConfig.url,
       this.supabaseConfig.serviceRoleKey
     );
 
-    this.logger.log(`Supabase Storage Provider initialized for bucket: ${this.supabaseConfig.bucketName}`);
+    this.logger.log(
+      `Supabase Storage Provider initialized for bucket: ${this.supabaseConfig.bucketName}`
+    );
   }
 
   /**
    * Check if a file exists in Supabase Storage
-   * 
+   *
    * @param filePath - File path in storage
    * @returns Promise resolving to boolean indicating file existence
    */
@@ -140,7 +145,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Get file metadata from Supabase Storage
-   * 
+   *
    * @param filePath - File path in storage
    * @returns Promise resolving to file metadata
    */
@@ -200,10 +205,10 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
   async listFiles(options: ListOptions): Promise<ListResult> {
     try {
       const { path, recursive = false, fileType, pattern, pagination } = options;
-      
+
       // Validate path
       this.validateFilePath(path);
-      
+
       // List files in the bucket with prefix
       const { data: files, error } = await this.supabaseClient.storage
         .from(this.bucketName)
@@ -224,12 +229,12 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
         if (file.id) {
           // This is a file
           const filePath = `${path}/${file.name}`;
-          
+
           // Apply file type filter
           if (fileType && !file.name.endsWith(`.${fileType}`)) {
             continue;
           }
-          
+
           // Apply pattern filter
           if (pattern && !file.name.includes(pattern)) {
             continue;
@@ -246,10 +251,10 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
         } else {
           // This is a directory
           const dirPath = `${path}/${file.name}`;
-          
+
           // Get file count in directory
           const fileCount = await this.getDirectoryFileCount(dirPath);
-          
+
           directoryInfos.push({
             path: dirPath,
             name: file.name,
@@ -263,7 +268,9 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
       const total = fileInfos.length + directoryInfos.length;
       const totalPages = Math.ceil(total / (pagination?.limit || 1000));
 
-      this.logger.log(`Listed ${fileInfos.length} files and ${directoryInfos.length} directories in ${path}`);
+      this.logger.log(
+        `Listed ${fileInfos.length} files and ${directoryInfos.length} directories in ${path}`
+      );
       return {
         success: true,
         files: fileInfos,
@@ -295,27 +302,25 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
   async generateUrl(options: UrlOptions): Promise<string> {
     try {
       const { filePath, type, expiresIn = 3600 } = options;
-      
+
       // Validate file path
       this.validateFilePath(filePath);
-      
+
       if (type === 'public') {
         // Generate public URL
-        const { data } = this.supabaseClient.storage
-          .from(this.bucketName)
-          .getPublicUrl(filePath);
-        
+        const { data } = this.supabaseClient.storage.from(this.bucketName).getPublicUrl(filePath);
+
         return data.publicUrl;
       } else {
         // Generate presigned URL
         const { data, error } = await this.supabaseClient.storage
           .from(this.bucketName)
           .createSignedUrl(filePath, expiresIn);
-        
+
         if (error) {
           throw new Error(`Failed to create signed URL: ${error.message}`);
         }
-        
+
         return data.signedUrl;
       }
     } catch (error) {
@@ -334,16 +339,16 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
     try {
       // Validate file path
       this.validateFilePath(filePath);
-      
+
       // Check if file exists
       if (!(await this.exists(filePath))) {
         throw new Error(`File not found: ${filePath}`);
       }
-      
+
       // Set public access by updating bucket policy
       // Note: This is a simplified implementation
       // In a real implementation, you would update the bucket policy
-      
+
       this.logger.log(`File access set to public: ${filePath}`);
       return {
         success: true,
@@ -370,13 +375,13 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
     try {
       // Get bucket information
       const { data: buckets, error } = await this.supabaseClient.storage.listBuckets();
-      
+
       if (error) {
         throw error;
       }
-      
+
       const bucket = buckets.find(b => b.name === this.bucketName);
-      
+
       return {
         name: 'Supabase Storage',
         type: 'supabase',
@@ -420,7 +425,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual file upload to Supabase Storage
-   * 
+   *
    * @param fileData - File data to upload
    * @param options - Upload options
    * @returns Promise resolving to upload result
@@ -511,7 +516,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual file download from Supabase Storage
-   * 
+   *
    * @param filePath - File path in storage
    * @param options - Download options
    * @returns Promise resolving to download result
@@ -534,7 +539,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
       }
 
       let downloadData: Buffer | NodeJS.ReadableStream | string;
-      
+
       if (options.format === 'buffer') {
         // Convert to buffer
         downloadData = await this.streamToBuffer(data);
@@ -565,15 +570,13 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual file deletion from Supabase Storage
-   * 
+   *
    * @param filePath - File path in storage
    * @returns Promise resolving to deletion result
    */
   protected async performDelete(filePath: string): Promise<DeleteResult> {
     try {
-      const { error } = await this.supabaseClient.storage
-        .from(this.bucketName)
-        .remove([filePath]);
+      const { error } = await this.supabaseClient.storage.from(this.bucketName).remove([filePath]);
 
       if (error) {
         throw error;
@@ -592,7 +595,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual metadata update in Supabase Storage
-   * 
+   *
    * @param filePath - File path in storage
    * @param metadata - Updated metadata
    * @returns Promise resolving to update result
@@ -605,7 +608,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
       // Supabase Storage doesn't support direct metadata updates
       // We'll need to re-upload the file with new metadata
       // For now, we'll return success as the metadata is stored in our system
-      
+
       return {
         success: true,
         path: filePath,
@@ -622,7 +625,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Check if a file is publicly accessible
-   * 
+   *
    * @param filePath - File path in storage
    * @returns Promise resolving to boolean indicating public access
    */
@@ -648,7 +651,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Get content type from file key
-   * 
+   *
    * @param key - File key
    * @returns Content type string
    */
@@ -675,7 +678,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Get file count in directory
-   * 
+   *
    * @param directoryPath - Directory path
    * @returns Promise resolving to file count
    */
@@ -701,15 +704,15 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Convert stream to buffer
-   * 
+   *
    * @param stream - Readable stream
    * @returns Promise resolving to buffer
    */
   private async streamToBuffer(stream: Readable): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
-      
-      stream.on('data', (chunk) => chunks.push(chunk));
+
+      stream.on('data', chunk => chunks.push(chunk));
       stream.on('end', () => resolve(Buffer.concat(chunks)));
       stream.on('error', reject);
     });
@@ -717,7 +720,7 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
 
   /**
    * Save stream to file
-   * 
+   *
    * @param stream - Readable stream
    * @param filePath - Target file path
    * @returns Promise resolving when file is saved
@@ -725,11 +728,11 @@ export class SupabaseStorageProvider extends BaseStorageProvider {
   private async streamToFile(stream: Readable, filePath: string): Promise<void> {
     const fs = await import('fs');
     const writeStream = fs.createWriteStream(filePath);
-    
+
     return new Promise((resolve, reject) => {
       stream.pipe(writeStream);
       writeStream.on('finish', resolve);
       writeStream.on('error', reject);
     });
   }
-} 
+}

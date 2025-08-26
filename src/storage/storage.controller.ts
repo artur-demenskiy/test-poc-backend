@@ -1,10 +1,10 @@
 /**
  * Storage Controller - HTTP API for storage operations
- * 
+ *
  * This controller provides RESTful endpoints for file management operations
  * including upload, download, deletion, metadata management, and provider
  * administration. It uses the unified StorageService for all operations.
- * 
+ *
  * Key Features:
  * - File upload with multipart form data
  * - File download with streaming support
@@ -12,7 +12,7 @@
  * - Provider health monitoring and switching
  * - File processing and transformation
  * - Access control and URL generation
- * 
+ *
  * Supported Endpoints:
  * ├── File Operations: POST /upload, GET /download/:path, DELETE /files/:path
  * ├── Metadata: GET /files/:path/metadata, PUT /files/:path/metadata
@@ -129,7 +129,7 @@ export class StorageController {
 
   /**
    * Upload a file to storage
-   * 
+   *
    * @param file - Uploaded file from multipart form data
    * @param path - File path in storage (from query parameter)
    * @param public - Whether the file should be public (from query parameter)
@@ -191,7 +191,7 @@ export class StorageController {
     @Query('path') path: string,
     @Query('public') public: string,
     @Query('metadata') metadata: string,
-    @Query('tags') tags: string,
+    @Query('tags') tags: string
   ): Promise<FileUploadResponse> {
     try {
       if (!file) {
@@ -221,10 +221,7 @@ export class StorageController {
       const result = await this.storageService.upload(file.buffer, uploadOptions);
 
       if (!result.success) {
-        throw new HttpException(
-          `Upload failed: ${result.error}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+        throw new HttpException(`Upload failed: ${result.error}`, HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
       this.logger.log(`File uploaded successfully: ${path}`);
@@ -239,21 +236,18 @@ export class StorageController {
       };
     } catch (error) {
       this.logger.error(`File upload failed: ${error.message}`);
-      
+
       if (error instanceof HttpException) {
         throw error;
       }
-      
-      throw new HttpException(
-        `Upload failed: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+
+      throw new HttpException(`Upload failed: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
   /**
    * Download a file from storage
-   * 
+   *
    * @param path - File path in storage
    * @param format - Download format (buffer, stream, file)
    * @param process - Processing options as JSON string
@@ -280,7 +274,7 @@ export class StorageController {
     @Param('path') path: string,
     @Query('format') format: string,
     @Query('process') process: string,
-    @Res() res: Response,
+    @Res() res: Response
   ): Promise<void> {
     try {
       // Check if file exists
@@ -308,7 +302,7 @@ export class StorageController {
         'Content-Length': result.size.toString(),
         'Content-Disposition': `attachment; filename="${encodeURIComponent(result.metadata.name)}"`,
         'Last-Modified': result.metadata.updatedAt.toUTCString(),
-        'ETag': result.metadata.hash || '',
+        ETag: result.metadata.hash || '',
       });
 
       // Send file data
@@ -326,21 +320,21 @@ export class StorageController {
       this.logger.log(`File downloaded successfully: ${path}`);
     } catch (error) {
       this.logger.error(`File download failed: ${error.message}`);
-      
+
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       throw new HttpException(
         `Download failed: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Delete a file from storage
-   * 
+   *
    * @param path - File path in storage
    * @returns Deletion result
    */
@@ -375,7 +369,7 @@ export class StorageController {
       if (!result.success) {
         throw new HttpException(
           `Deletion failed: ${result.error}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
       }
 
@@ -384,21 +378,21 @@ export class StorageController {
       return { success: true };
     } catch (error) {
       this.logger.error(`File deletion failed: ${error.message}`);
-      
+
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       throw new HttpException(
         `Deletion failed: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Get file metadata
-   * 
+   *
    * @param path - File path in storage
    * @returns File metadata
    */
@@ -424,14 +418,14 @@ export class StorageController {
       this.logger.error(`Failed to get file metadata: ${error.message}`);
       throw new HttpException(
         `Failed to get metadata: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Update file metadata
-   * 
+   *
    * @param path - File path in storage
    * @param metadata - New metadata to apply
    * @returns Update result
@@ -451,16 +445,13 @@ export class StorageController {
   })
   async updateFileMetadata(
     @Param('path') path: string,
-    @Body() metadata: Partial<FileMetadataResponse>,
+    @Body() metadata: Partial<FileMetadataResponse>
   ): Promise<{ success: boolean }> {
     try {
       const result = await this.storageService.updateMetadata(path, metadata);
 
       if (!result.success) {
-        throw new HttpException(
-          `Update failed: ${result.error}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+        throw new HttpException(`Update failed: ${result.error}`, HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
       return { success: true };
@@ -468,14 +459,14 @@ export class StorageController {
       this.logger.error(`Failed to update file metadata: ${error.message}`);
       throw new HttpException(
         `Failed to update metadata: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * List files in a directory
-   * 
+   *
    * @param path - Directory path in storage
    * @param recursive - Whether to list recursively
    * @param maxResults - Maximum number of results
@@ -496,7 +487,7 @@ export class StorageController {
     @Param('path') path: string,
     @Query('recursive') recursive: string,
     @Query('maxResults') maxResults: string,
-    @Query('prefix') prefix: string,
+    @Query('prefix') prefix: string
   ): Promise<FileListingResponse> {
     try {
       const options: ListOptions = {
@@ -511,14 +502,14 @@ export class StorageController {
       this.logger.error(`Failed to list files: ${error.message}`);
       throw new HttpException(
         `Failed to list files: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Process a file (resize, compress, convert format)
-   * 
+   *
    * @param path - File path in storage
    * @param processOptions - Processing options
    * @returns Processing result
@@ -538,7 +529,7 @@ export class StorageController {
   })
   async processFile(
     @Param('path') path: string,
-    @Body() processOptions: ProcessOptions,
+    @Body() processOptions: ProcessOptions
   ): Promise<{ success: boolean; processedPath: string }> {
     try {
       const result = await this.storageService.process(path, processOptions);
@@ -546,7 +537,7 @@ export class StorageController {
       if (!result.success) {
         throw new HttpException(
           `Processing failed: ${result.error}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
       }
 
@@ -558,14 +549,14 @@ export class StorageController {
       this.logger.error(`Failed to process file: ${error.message}`);
       throw new HttpException(
         `Failed to process file: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Set file as public
-   * 
+   *
    * @param path - File path in storage
    * @returns Access control result
    */
@@ -585,7 +576,7 @@ export class StorageController {
       if (!result.success) {
         throw new HttpException(
           `Failed to set file public: ${result.error}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
       }
 
@@ -594,14 +585,14 @@ export class StorageController {
       this.logger.error(`Failed to set file public: ${error.message}`);
       throw new HttpException(
         `Failed to set file public: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Set file as private
-   * 
+   *
    * @param path - File path in storage
    * @returns Access control result
    */
@@ -621,7 +612,7 @@ export class StorageController {
       if (!result.success) {
         throw new HttpException(
           `Failed to set file private: ${result.error}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
+          HttpStatus.INTERNAL_SERVER_ERROR
         );
       }
 
@@ -630,14 +621,14 @@ export class StorageController {
       this.logger.error(`Failed to set file private: ${error.message}`);
       throw new HttpException(
         `Failed to set file private: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Generate access URL for file
-   * 
+   *
    * @param path - File path in storage
    * @param expiresIn - URL expiration time in seconds
    * @param public - Whether to generate public URL
@@ -655,7 +646,7 @@ export class StorageController {
   async generateFileUrl(
     @Param('path') path: string,
     @Query('expiresIn') expiresIn: string,
-    @Query('public') public: string,
+    @Query('public') public: string
   ): Promise<{ url: string }> {
     try {
       const options: UrlOptions = {
@@ -669,14 +660,14 @@ export class StorageController {
       this.logger.error(`Failed to generate URL: ${error.message}`);
       throw new HttpException(
         `Failed to generate URL: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Copy a file within storage
-   * 
+   *
    * @param path - Source file path
    * @param copyOptions - Copy options including destination
    * @returns Copy result
@@ -692,7 +683,7 @@ export class StorageController {
   })
   async copyFile(
     @Param('path') path: string,
-    @Body() copyOptions: { destination: string; preserveMetadata?: boolean; overwrite?: boolean },
+    @Body() copyOptions: { destination: string; preserveMetadata?: boolean; overwrite?: boolean }
   ): Promise<{ success: boolean }> {
     try {
       if (!copyOptions.destination) {
@@ -707,30 +698,27 @@ export class StorageController {
       const result = await this.storageService.copy(path, copyOptions.destination, options);
 
       if (!result.success) {
-        throw new HttpException(
-          `Copy failed: ${result.error}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+        throw new HttpException(`Copy failed: ${result.error}`, HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
       return { success: true };
     } catch (error) {
       this.logger.error(`Failed to copy file: ${error.message}`);
-      
+
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       throw new HttpException(
         `Failed to copy file: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Move a file within storage
-   * 
+   *
    * @param path - Source file path
    * @param moveOptions - Move options including destination
    * @returns Move result
@@ -746,7 +734,7 @@ export class StorageController {
   })
   async moveFile(
     @Param('path') path: string,
-    @Body() moveOptions: { destination: string },
+    @Body() moveOptions: { destination: string }
   ): Promise<{ success: boolean }> {
     try {
       if (!moveOptions.destination) {
@@ -756,30 +744,27 @@ export class StorageController {
       const result = await this.storageService.move(path, moveOptions.destination);
 
       if (!result.success) {
-        throw new HttpException(
-          `Move failed: ${result.error}`,
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
+        throw new HttpException(`Move failed: ${result.error}`, HttpStatus.INTERNAL_SERVER_ERROR);
       }
 
       return { success: true };
     } catch (error) {
       this.logger.error(`Failed to move file: ${error.message}`);
-      
+
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       throw new HttpException(
         `Failed to move file: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Get all available storage providers
-   * 
+   *
    * @returns List of storage providers
    */
   @Get('providers')
@@ -795,9 +780,10 @@ export class StorageController {
     try {
       const allProviders = this.storageService.getAllProviders();
       const currentProvider = this.storageService.getCurrentProvider();
-      
+
       const providerNames = allProviders.map(p => p.name);
-      const currentProviderName = allProviders.find(p => p.instance === currentProvider)?.name || 'unknown';
+      const currentProviderName =
+        allProviders.find(p => p.instance === currentProvider)?.name || 'unknown';
 
       return {
         providers: providerNames,
@@ -807,14 +793,14 @@ export class StorageController {
       this.logger.error(`Failed to get providers: ${error.message}`);
       throw new HttpException(
         `Failed to get providers: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Get provider health status
-   * 
+   *
    * @returns Provider health information
    */
   @Get('providers/health')
@@ -834,14 +820,14 @@ export class StorageController {
       this.logger.error(`Failed to get provider health: ${error.message}`);
       throw new HttpException(
         `Failed to get provider health: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Switch to a different storage provider
-   * 
+   *
    * @param providerName - Name of the provider to switch to
    * @returns Switch result
    */
@@ -858,7 +844,9 @@ export class StorageController {
     status: 400,
     description: 'Invalid provider name or provider not healthy',
   })
-  async switchProvider(@Body() body: { provider: string }): Promise<{ success: boolean; provider: string }> {
+  async switchProvider(
+    @Body() body: { provider: string }
+  ): Promise<{ success: boolean; provider: string }> {
     try {
       if (!body.provider) {
         throw new HttpException('Provider name is required', HttpStatus.BAD_REQUEST);
@@ -869,28 +857,28 @@ export class StorageController {
       if (!success) {
         throw new HttpException(
           `Failed to switch to provider: ${body.provider}`,
-          HttpStatus.BAD_REQUEST,
+          HttpStatus.BAD_REQUEST
         );
       }
 
       return { success: true, provider: body.provider };
     } catch (error) {
       this.logger.error(`Failed to switch provider: ${error.message}`);
-      
+
       if (error instanceof HttpException) {
         throw error;
       }
-      
+
       throw new HttpException(
         `Failed to switch provider: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
   /**
    * Get current storage provider information
-   * 
+   *
    * @returns Current provider information
    */
   @Get('providers/current')
@@ -909,8 +897,8 @@ export class StorageController {
       this.logger.error(`Failed to get current provider info: ${error.message}`);
       throw new HttpException(
         `Failed to get provider info: ${error.message}`,
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
-} 
+}

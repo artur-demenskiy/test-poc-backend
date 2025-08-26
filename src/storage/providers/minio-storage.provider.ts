@@ -1,10 +1,10 @@
 /**
  * MinIO Storage Provider
- * 
+ *
  * This provider implements the IStorageProvider interface for MinIO storage.
  * It provides comprehensive file management capabilities including upload, download,
  * deletion, metadata management, and access control using MinIO's S3-compatible API.
- * 
+ *
  * Key Features:
  * - Direct MinIO integration using MinIO client
  * - S3-compatible API for easy migration
@@ -13,7 +13,7 @@
  * - Access control and bucket policies
  * - File processing and transformation support
  * - Error handling and retry logic
- * 
+ *
  * Configuration Requirements:
  * - MINIO_ENDPOINT: MinIO server endpoint
  * - MINIO_ACCESS_KEY: MinIO access key
@@ -21,7 +21,7 @@
  * - MINIO_USE_SSL: Whether to use SSL (true/false)
  * - STORAGE_MINIO_BUCKET_NAME: MinIO bucket name
  * - STORAGE_MINIO_REGION: MinIO region
- * 
+ *
  * Supported Operations:
  * ├── File Management: upload, download, delete, exists
  * ├── Metadata: getMetadata, updateMetadata, listFiles
@@ -82,7 +82,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   constructor(configService: ConfigService) {
     super(configService);
-    
+
     // Initialize MinIO configuration
     this.minioConfig = {
       endpoint: this.configService.get<string>('MINIO_ENDPOINT', 'localhost'),
@@ -109,12 +109,14 @@ export class MinIOStorageProvider extends BaseStorageProvider {
       region: this.minioConfig.region,
     });
 
-    this.logger.log(`MinIO Storage Provider initialized for bucket: ${this.minioConfig.bucketName}`);
+    this.logger.log(
+      `MinIO Storage Provider initialized for bucket: ${this.minioConfig.bucketName}`
+    );
   }
 
   /**
    * Check if a file exists in MinIO
-   * 
+   *
    * @param filePath - File path in MinIO
    * @returns Promise resolving to boolean indicating file existence
    */
@@ -132,7 +134,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Get file metadata from MinIO
-   * 
+   *
    * @param filePath - File path in MinIO
    * @returns Promise resolving to file metadata
    */
@@ -163,18 +165,15 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * List files in a MinIO directory
-   * 
+   *
    * @param directoryPath - Directory path in MinIO
    * @param options - Listing options
    * @returns Promise resolving to list result
    */
-  async listFiles(
-    directoryPath: string,
-    options: ListOptions = {}
-  ): Promise<ListResult> {
+  async listFiles(directoryPath: string, options: ListOptions = {}): Promise<ListResult> {
     try {
       const prefix = directoryPath.endsWith('/') ? directoryPath : `${directoryPath}/`;
-      
+
       const stream = this.minioClient.listObjects(
         this.minioConfig.bucketName,
         prefix,
@@ -186,7 +185,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
       const seenDirs = new Set<string>();
 
       return new Promise<ListResult>((resolve, reject) => {
-        stream.on('data', async (obj) => {
+        stream.on('data', async obj => {
           try {
             if (obj.name === prefix) {
               return; // Skip the directory itself
@@ -196,7 +195,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
               // This is a directory
               const dirName = path.basename(obj.name.slice(0, -1));
               const dirPath = obj.name;
-              
+
               if (!seenDirs.has(dirPath)) {
                 seenDirs.add(dirPath);
                 directories.push({
@@ -257,7 +256,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Generate a presigned URL for file access
-   * 
+   *
    * @param filePath - File path in MinIO
    * @param options - URL generation options
    * @returns Promise resolving to presigned URL
@@ -271,7 +270,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
       // Generate presigned URL for private access
       const expiresIn = options.expiresIn || 3600; // Default 1 hour
-      
+
       return await this.minioClient.presignedGetObject(
         this.minioConfig.bucketName,
         filePath,
@@ -285,7 +284,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Set file access level (public/private)
-   * 
+   *
    * @param filePath - File path in MinIO
    * @param public - Whether the file should be publicly accessible
    * @returns Promise resolving to access control result
@@ -295,7 +294,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
       // MinIO uses bucket policies for access control
       // This is typically managed through bucket policies rather than per-object ACLs
       // For now, we'll update the file metadata to reflect the intended access level
-      
+
       const currentMetadata = await this.getMetadata(filePath);
       await this.updateMetadata(filePath, {
         ...currentMetadata,
@@ -306,7 +305,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
       });
 
       this.logger.log(`File access level updated: ${filePath} -> ${public ? 'public' : 'private'}`);
-      
+
       return {
         success: true,
         path: filePath,
@@ -327,7 +326,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Get storage provider information
-   * 
+   *
    * @returns Object containing provider details and capabilities
    */
   getProviderInfo(): StorageProviderInfo {
@@ -359,7 +358,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual file upload to MinIO
-   * 
+   *
    * @param fileData - File data to upload
    * @param options - Upload options
    * @returns Promise resolving to upload result
@@ -449,7 +448,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual file download from MinIO
-   * 
+   *
    * @param filePath - File path in MinIO
    * @param options - Download options
    * @returns Promise resolving to download result
@@ -460,7 +459,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
   ): Promise<DownloadResult> {
     try {
       let downloadData: Buffer | NodeJS.ReadableStream | string;
-      
+
       if (options.format === 'buffer') {
         // Download as buffer
         downloadData = await this.minioClient.getObject(this.minioConfig.bucketName, filePath);
@@ -491,7 +490,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual file deletion from MinIO
-   * 
+   *
    * @param filePath - File path in MinIO
    * @returns Promise resolving to deletion result
    */
@@ -512,7 +511,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual metadata update in MinIO
-   * 
+   *
    * @param filePath - File path in MinIO
    * @param metadata - Updated metadata
    * @returns Promise resolving to update result
@@ -525,7 +524,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
       // MinIO doesn't support direct metadata updates
       // We'll need to re-upload the file with new metadata
       // For now, we'll return success as the metadata is stored in our system
-      
+
       return {
         success: true,
         path: filePath,
@@ -542,7 +541,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Check if a file is publicly accessible
-   * 
+   *
    * @param filePath - File path in MinIO
    * @returns Promise resolving to boolean indicating public access
    */
@@ -551,7 +550,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
       // Try to access the file without authentication
       // This is a basic check - in production, you might want to check bucket policies
       const publicUrl = `http${this.minioConfig.useSSL ? 's' : ''}://${this.minioConfig.endpoint}/${this.minioConfig.bucketName}/${filePath}`;
-      
+
       const response = await fetch(publicUrl, { method: 'HEAD' });
       return response.ok;
     } catch (error) {
@@ -562,7 +561,7 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Get content type from file key
-   * 
+   *
    * @param key - MinIO object key
    * @returns Content type string
    */
@@ -589,27 +588,27 @@ export class MinIOStorageProvider extends BaseStorageProvider {
 
   /**
    * Get file count in directory
-   * 
+   *
    * @param directoryPath - Directory path
    * @returns Promise resolving to file count
    */
   private async getDirectoryFileCount(directoryPath: string): Promise<number> {
     try {
       const prefix = directoryPath.endsWith('/') ? directoryPath : `${directoryPath}/`;
-      
+
       const stream = this.minioClient.listObjects(this.minioConfig.bucketName, prefix, true);
-      
+
       let count = 0;
-      
+
       return new Promise<number>((resolve, reject) => {
         stream.on('data', () => {
           count++;
         });
-        
+
         stream.on('end', () => {
           resolve(count);
         });
-        
+
         stream.on('error', reject);
       });
     } catch (error) {
@@ -617,4 +616,4 @@ export class MinIOStorageProvider extends BaseStorageProvider {
       return 0;
     }
   }
-} 
+}

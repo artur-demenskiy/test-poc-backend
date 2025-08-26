@@ -1,10 +1,10 @@
 /**
  * Google Cloud Storage Provider
- * 
+ *
  * This provider implements the IStorageProvider interface for Google Cloud Storage.
  * It provides comprehensive file management capabilities including upload, download,
  * deletion, metadata management, and access control using Google Cloud Storage API.
- * 
+ *
  * Key Features:
  * - Direct GCS integration using Google Cloud Storage client
  * - Signed URL generation for secure access
@@ -12,14 +12,14 @@
  * - Access control and bucket policies
  * - File processing and transformation support
  * - Error handling and retry logic
- * 
+ *
  * Configuration Requirements:
  * - GOOGLE_CLOUD_PROJECT_ID: Google Cloud project ID
  * - GOOGLE_CLOUD_PRIVATE_KEY: Google Cloud private key (JSON format)
  * - GOOGLE_CLOUD_CLIENT_EMAIL: Google Cloud client email
  * - STORAGE_GCS_BUCKET_NAME: GCS bucket name
  * - STORAGE_GCS_REGION: GCS bucket region
- * 
+ *
  * Supported Operations:
  * ├── File Management: upload, download, delete, exists
  * ├── Metadata: getMetadata, updateMetadata, listFiles
@@ -79,7 +79,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   constructor(configService: ConfigService) {
     super(configService);
-    
+
     // Initialize GCS configuration
     this.gcsConfig = {
       projectId: this.configService.get<string>('GOOGLE_CLOUD_PROJECT_ID', ''),
@@ -96,9 +96,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
     }
 
     // Parse private key (remove newlines and quotes)
-    const privateKey = this.gcsConfig.privateKey
-      .replace(/\\n/g, '\n')
-      .replace(/"/g, '');
+    const privateKey = this.gcsConfig.privateKey.replace(/\\n/g, '\n').replace(/"/g, '');
 
     // Initialize GCS client
     this.storage = new Storage({
@@ -117,7 +115,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Check if a file exists in GCS
-   * 
+   *
    * @param filePath - File path in GCS
    * @returns Promise resolving to boolean indicating file existence
    */
@@ -134,7 +132,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Get file metadata from GCS
-   * 
+   *
    * @param filePath - File path in GCS
    * @returns Promise resolving to file metadata
    */
@@ -164,18 +162,15 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * List files in a GCS directory
-   * 
+   *
    * @param directoryPath - Directory path in GCS
    * @param options - Listing options
    * @returns Promise resolving to list result
    */
-  async listFiles(
-    directoryPath: string,
-    options: ListOptions = {}
-  ): Promise<ListResult> {
+  async listFiles(directoryPath: string, options: ListOptions = {}): Promise<ListResult> {
     try {
       const prefix = directoryPath.endsWith('/') ? directoryPath : `${directoryPath}/`;
-      
+
       const [files] = await this.bucket.getFiles({
         prefix,
         delimiter: options.delimiter || '/',
@@ -236,7 +231,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Generate a signed URL for file access
-   * 
+   *
    * @param filePath - File path in GCS
    * @param options - URL generation options
    * @returns Promise resolving to signed URL
@@ -252,7 +247,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
       // Generate signed URL for private access
       const expiresIn = options.expiresIn || 3600; // Default 1 hour
-      
+
       const [url] = await file.getSignedUrl({
         action: 'read',
         expires: Date.now() + expiresIn * 1000,
@@ -270,7 +265,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Set file access level (public/private)
-   * 
+   *
    * @param filePath - File path in GCS
    * @param public - Whether the file should be publicly accessible
    * @returns Promise resolving to access control result
@@ -288,7 +283,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
       }
 
       this.logger.log(`File access level updated: ${filePath} -> ${public ? 'public' : 'private'}`);
-      
+
       return {
         success: true,
         path: filePath,
@@ -309,7 +304,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Get storage provider information
-   * 
+   *
    * @returns Object containing provider details and capabilities
    */
   getProviderInfo(): StorageProviderInfo {
@@ -341,7 +336,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual file upload to GCS
-   * 
+   *
    * @param fileData - File data to upload
    * @param options - Upload options
    * @returns Promise resolving to upload result
@@ -434,7 +429,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual file download from GCS
-   * 
+   *
    * @param filePath - File path in GCS
    * @param options - Download options
    * @returns Promise resolving to download result
@@ -448,7 +443,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
       const [metadata] = await file.getMetadata();
 
       let downloadData: Buffer | NodeJS.ReadableStream | string;
-      
+
       if (options.format === 'buffer') {
         // Download as buffer
         const [buffer] = await file.download();
@@ -478,7 +473,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual file deletion from GCS
-   * 
+   *
    * @param filePath - File path in GCS
    * @returns Promise resolving to deletion result
    */
@@ -500,7 +495,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Perform the actual metadata update in GCS
-   * 
+   *
    * @param filePath - File path in GCS
    * @param metadata - Updated metadata
    * @returns Promise resolving to update result
@@ -511,7 +506,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
   ): Promise<UpdateResult> {
     try {
       const file = this.bucket.file(filePath);
-      
+
       // Update metadata
       await file.setMetadata({
         metadata: {
@@ -536,7 +531,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Check if a file is publicly accessible
-   * 
+   *
    * @param filePath - File path in GCS
    * @returns Promise resolving to boolean indicating public access
    */
@@ -544,11 +539,9 @@ export class GCSStorageProvider extends BaseStorageProvider {
     try {
       const file = this.bucket.file(filePath);
       const [acl] = await file.acl.get();
-      
+
       // Check if there's a public read grant
-      return acl.some(entry => 
-        entry.entity === 'allUsers' && entry.role === 'READER'
-      );
+      return acl.some(entry => entry.entity === 'allUsers' && entry.role === 'READER');
     } catch (error) {
       this.logger.warn(`Failed to check public access for file ${filePath}: ${error.message}`);
       return false;
@@ -557,7 +550,7 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Get content type from file key
-   * 
+   *
    * @param key - GCS object key
    * @returns Content type string
    */
@@ -584,14 +577,14 @@ export class GCSStorageProvider extends BaseStorageProvider {
 
   /**
    * Get file count in directory
-   * 
+   *
    * @param directoryPath - Directory path
    * @returns Promise resolving to file count
    */
   private async getDirectoryFileCount(directoryPath: string): Promise<number> {
     try {
       const prefix = directoryPath.endsWith('/') ? directoryPath : `${directoryPath}/`;
-      
+
       const [files] = await this.bucket.getFiles({
         prefix,
         maxResults: 1,
@@ -603,4 +596,4 @@ export class GCSStorageProvider extends BaseStorageProvider {
       return 0;
     }
   }
-} 
+}

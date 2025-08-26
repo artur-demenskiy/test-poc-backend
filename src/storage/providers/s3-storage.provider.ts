@@ -1,10 +1,10 @@
 /**
  * AWS S3 Storage Provider
- * 
+ *
  * This provider implements the IStorageProvider interface for AWS S3 storage.
  * It provides comprehensive file management capabilities including upload, download,
  * deletion, metadata management, and access control.
- * 
+ *
  * Key Features:
  * - Direct S3 integration using AWS SDK v3
  * - Presigned URL generation for secure access
@@ -12,14 +12,14 @@
  * - Access control and bucket policies
  * - File processing and transformation support
  * - Error handling and retry logic
- * 
+ *
  * Configuration Requirements:
  * - AWS_ACCESS_KEY_ID: AWS access key
  * - AWS_SECRET_ACCESS_KEY: AWS secret key
  * - AWS_REGION: AWS region
  * - STORAGE_S3_BUCKET_NAME: S3 bucket name
  * - STORAGE_S3_ENDPOINT: Optional custom S3 endpoint (for MinIO compatibility)
- * 
+ *
  * Supported Operations:
  * ├── File Management: upload, download, delete, exists
  * ├── Metadata: getMetadata, updateMetadata, listFiles
@@ -97,7 +97,7 @@ export class S3StorageProvider extends BaseStorageProvider {
 
   constructor(configService: ConfigService) {
     super();
-    
+
     // Initialize S3 configuration
     this.s3Config = {
       accessKeyId: configService.get<string>('AWS_ACCESS_KEY_ID', ''),
@@ -116,7 +116,9 @@ export class S3StorageProvider extends BaseStorageProvider {
 
     // Validate required configuration
     if (!this.s3Config.accessKeyId || !this.s3Config.secretAccessKey || !this.s3Config.bucketName) {
-      throw new Error('Missing required S3 configuration: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, or STORAGE_S3_BUCKET_NAME');
+      throw new Error(
+        'Missing required S3 configuration: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, or STORAGE_S3_BUCKET_NAME'
+      );
     }
 
     // Initialize S3 client
@@ -135,7 +137,7 @@ export class S3StorageProvider extends BaseStorageProvider {
 
   /**
    * Check if a file exists in S3
-   * 
+   *
    * @param filePath - File path in S3
    * @returns Promise resolving to boolean indicating file existence
    */
@@ -145,7 +147,7 @@ export class S3StorageProvider extends BaseStorageProvider {
         Bucket: this.bucketName,
         Key: filePath,
       });
-      
+
       await this.s3Client.send(command);
       return true;
     } catch (error: any) {
@@ -165,14 +167,14 @@ export class S3StorageProvider extends BaseStorageProvider {
     try {
       // Validate file path
       this.validateFilePath(filePath);
-      
+
       const command = new HeadObjectCommand({
         Bucket: this.bucketName,
         Key: filePath,
       });
-      
+
       const response = await this.s3Client.send(command);
-      
+
       // Get tags if available
       let tags: string[] = [];
       try {
@@ -186,10 +188,10 @@ export class S3StorageProvider extends BaseStorageProvider {
         // Tags might not exist, which is fine
         this.logger.debug(`No tags found for file: ${filePath}`);
       }
-      
+
       // Check if file is public
       const isPublic = await this.isFilePublic(filePath);
-      
+
       this.logger.log(`Retrieved metadata for file: ${filePath}`);
       return {
         filePath,
@@ -216,10 +218,10 @@ export class S3StorageProvider extends BaseStorageProvider {
   async listFiles(options: ListOptions): Promise<ListResult> {
     try {
       const { path, recursive = false, fileType, pattern, pagination } = options;
-      
+
       // Validate path
       this.validateFilePath(path);
-      
+
       // Build S3 list objects parameters
       const listParams: any = {
         Bucket: this.bucketName,
@@ -236,10 +238,10 @@ export class S3StorageProvider extends BaseStorageProvider {
       }
 
       const listResult = await this.s3Client.send(new ListObjectsV2Command(listParams));
-      
+
       const files: FileInfo[] = [];
       const directories: DirectoryInfo[] = [];
-      
+
       // Process files
       if (listResult.Contents) {
         for (const object of listResult.Contents) {
@@ -247,17 +249,17 @@ export class S3StorageProvider extends BaseStorageProvider {
             // Skip the directory itself
             const relativePath = object.Key;
             const fileName = relativePath.split('/').pop() || relativePath;
-            
+
             // Apply file type filter
             if (fileType && !relativePath.endsWith(`.${fileType}`)) {
               continue;
             }
-            
+
             // Apply pattern filter
             if (pattern && !fileName.includes(pattern)) {
               continue;
             }
-            
+
             files.push({
               path: relativePath,
               name: fileName,
@@ -269,17 +271,17 @@ export class S3StorageProvider extends BaseStorageProvider {
           }
         }
       }
-      
+
       // Process directories (CommonPrefixes)
       if (listResult.CommonPrefixes) {
         for (const prefix of listResult.CommonPrefixes) {
           if (prefix.Prefix) {
             const dirPath = prefix.Prefix.replace(/\/$/, ''); // Remove trailing slash
             const dirName = dirPath.split('/').pop() || dirPath;
-            
+
             // Get file count in directory
             const fileCount = await this.getDirectoryFileCount(dirPath);
-            
+
             directories.push({
               path: dirPath,
               name: dirName,
@@ -289,12 +291,14 @@ export class S3StorageProvider extends BaseStorageProvider {
           }
         }
       }
-      
+
       // Calculate pagination info
       const total = (listResult.KeyCount || 0) + (listResult.CommonPrefixes?.length || 0);
       const totalPages = Math.ceil(total / (pagination?.limit || 1000));
-      
-      this.logger.log(`Listed ${files.length} files and ${directories.length} directories in ${path}`);
+
+      this.logger.log(
+        `Listed ${files.length} files and ${directories.length} directories in ${path}`
+      );
       return {
         success: true,
         files,
@@ -326,10 +330,10 @@ export class S3StorageProvider extends BaseStorageProvider {
   async generateUrl(options: UrlOptions): Promise<string> {
     try {
       const { filePath, type, expiresIn = 3600, responseHeaders } = options;
-      
+
       // Validate file path
       this.validateFilePath(filePath);
-      
+
       if (type === 'public') {
         // Generate public URL
         return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${filePath}`;
@@ -341,7 +345,7 @@ export class S3StorageProvider extends BaseStorageProvider {
           ResponseContentType: responseHeaders?.['content-type'],
           ResponseContentDisposition: responseHeaders?.['content-disposition'],
         });
-        
+
         return await getSignedUrl(this.s3Client, command, { expiresIn });
       }
     } catch (error) {
@@ -360,21 +364,21 @@ export class S3StorageProvider extends BaseStorageProvider {
     try {
       // Validate file path
       this.validateFilePath(filePath);
-      
+
       // Check if file exists
       if (!(await this.exists(filePath))) {
         throw new Error(`File not found: ${filePath}`);
       }
-      
+
       // Set public read access
       const command = new PutObjectAclCommand({
         Bucket: this.bucketName,
         Key: filePath,
         ACL: 'public-read',
       });
-      
+
       await this.s3Client.send(command);
-      
+
       this.logger.log(`File access set to public: ${filePath}`);
       return {
         success: true,
@@ -400,10 +404,12 @@ export class S3StorageProvider extends BaseStorageProvider {
   async getProviderInfo(): Promise<StorageProviderInfo> {
     try {
       // Get bucket information
-      const bucketInfo = await this.s3Client.send(new HeadBucketCommand({
-        Bucket: this.bucketName,
-      }));
-      
+      const bucketInfo = await this.s3Client.send(
+        new HeadBucketCommand({
+          Bucket: this.bucketName,
+        })
+      );
+
       return {
         name: 'AWS S3',
         type: 's3',
@@ -450,10 +456,13 @@ export class S3StorageProvider extends BaseStorageProvider {
   /**
    * Perform the actual file upload
    */
-  protected async performUpload(options: UploadOptions, content: Buffer | Readable): Promise<UploadResult> {
+  protected async performUpload(
+    options: UploadOptions,
+    content: Buffer | Readable
+  ): Promise<UploadResult> {
     try {
       const { filePath, contentType, metadata, isPublic } = options;
-      
+
       // Prepare upload parameters
       const uploadParams: any = {
         Bucket: this.bucketName,
@@ -462,15 +471,15 @@ export class S3StorageProvider extends BaseStorageProvider {
         ContentType: contentType || this.getContentTypeFromExtension(filePath),
         Metadata: metadata,
       };
-      
+
       // Set ACL based on public flag
       if (isPublic) {
         uploadParams.ACL = 'public-read';
       }
-      
+
       // Upload file
       const uploadResult = await this.s3Client.send(new PutObjectCommand(uploadParams));
-      
+
       // Get file size
       let size = 0;
       if (Buffer.isBuffer(content)) {
@@ -480,14 +489,16 @@ export class S3StorageProvider extends BaseStorageProvider {
         // In a real implementation, you might want to track this differently
         size = 0;
       }
-      
+
       this.logger.log(`File uploaded successfully: ${filePath}`);
       return {
         success: true,
         filePath,
         size,
         contentType: uploadParams.ContentType,
-        url: isPublic ? `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${filePath}` : undefined,
+        url: isPublic
+          ? `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${filePath}`
+          : undefined,
         metadata,
       };
     } catch (error) {
@@ -503,25 +514,25 @@ export class S3StorageProvider extends BaseStorageProvider {
   protected async performDownload(options: DownloadOptions): Promise<DownloadResult> {
     try {
       const { filePath, asStream = false, range } = options;
-      
+
       // Prepare download parameters
       const downloadParams: any = {
         Bucket: this.bucketName,
         Key: filePath,
       };
-      
+
       // Add range if specified
       if (range) {
         downloadParams.Range = `bytes=${range.start}-${range.end}`;
       }
-      
+
       // Download file
       const downloadResult = await this.s3Client.send(new GetObjectCommand(downloadParams));
-      
+
       if (!downloadResult.Body) {
         throw new Error('No file content received');
       }
-      
+
       // Convert to Buffer or Readable based on options
       let content: Buffer | Readable;
       if (asStream) {
@@ -534,7 +545,7 @@ export class S3StorageProvider extends BaseStorageProvider {
         }
         content = Buffer.concat(chunks);
       }
-      
+
       // Get metadata
       const metadata: FileMetadata = {
         filePath,
@@ -546,7 +557,7 @@ export class S3StorageProvider extends BaseStorageProvider {
         customMetadata: downloadResult.Metadata,
         etag: downloadResult.ETag?.replace(/"/g, ''),
       };
-      
+
       this.logger.log(`File downloaded successfully: ${filePath}`);
       return {
         success: true,
@@ -565,11 +576,13 @@ export class S3StorageProvider extends BaseStorageProvider {
    */
   protected async performDelete(filePath: string): Promise<DeleteResult> {
     try {
-      await this.s3Client.send(new DeleteObjectCommand({
-        Bucket: this.bucketName,
-        Key: filePath,
-      }));
-      
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucketName,
+          Key: filePath,
+        })
+      );
+
       this.logger.log(`File deleted successfully: ${filePath}`);
       return {
         success: true,
@@ -585,11 +598,14 @@ export class S3StorageProvider extends BaseStorageProvider {
   /**
    * Perform the actual metadata update
    */
-  protected async performUpdateMetadata(filePath: string, metadata: Record<string, string>): Promise<UpdateResult> {
+  protected async performUpdateMetadata(
+    filePath: string,
+    metadata: Record<string, string>
+  ): Promise<UpdateResult> {
     try {
       // Get current metadata
       const currentMetadata = await this.getMetadata(filePath);
-      
+
       // Update metadata by copying object with new metadata
       const copyCommand = new CopyObjectCommand({
         Bucket: this.bucketName,
@@ -598,12 +614,12 @@ export class S3StorageProvider extends BaseStorageProvider {
         Metadata: metadata,
         MetadataDirective: 'REPLACE',
       });
-      
+
       await this.s3Client.send(copyCommand);
-      
+
       // Get updated metadata
       const updatedMetadata = await this.getMetadata(filePath);
-      
+
       this.logger.log(`Metadata updated successfully: ${filePath}`);
       return {
         success: true,
@@ -628,13 +644,15 @@ export class S3StorageProvider extends BaseStorageProvider {
         Bucket: this.bucketName,
         Key: filePath,
       });
-      
+
       const response = await this.s3Client.send(command);
-      
+
       // Check if there's a public read grant
       return (response.Grants || []).some((grant: any) => {
-        return grant.Grantee?.URI === 'http://acs.amazonaws.com/groups/global/AllUsers' &&
-               grant.Permission === 'READ';
+        return (
+          grant.Grantee?.URI === 'http://acs.amazonaws.com/groups/global/AllUsers' &&
+          grant.Permission === 'READ'
+        );
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -649,13 +667,13 @@ export class S3StorageProvider extends BaseStorageProvider {
   private async getDirectoryFileCount(dirPath: string): Promise<number> {
     try {
       const prefix = dirPath.endsWith('/') ? dirPath : `${dirPath}/`;
-      
+
       const command = new ListObjectsV2Command({
         Bucket: this.bucketName,
         Prefix: prefix,
         MaxKeys: 1,
       });
-      
+
       const response = await this.s3Client.send(command);
       return response.KeyCount || 0;
     } catch (error) {
@@ -685,21 +703,21 @@ export class S3StorageProvider extends BaseStorageProvider {
       '.css': 'text/css',
       '.js': 'application/javascript',
     };
-    
+
     return mimeTypes[ext] || 'application/octet-stream';
   }
 
   /**
    * Convert stream to buffer
-   * 
+   *
    * @param stream - Readable stream
    * @returns Promise resolving to buffer
    */
   private async streamToBuffer(stream: Readable): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
-      
-      stream.on('data', (chunk) => chunks.push(chunk));
+
+      stream.on('data', chunk => chunks.push(chunk));
       stream.on('end', () => resolve(Buffer.concat(chunks)));
       stream.on('error', reject);
     });
@@ -707,7 +725,7 @@ export class S3StorageProvider extends BaseStorageProvider {
 
   /**
    * Save stream to file
-   * 
+   *
    * @param stream - Readable stream
    * @param filePath - Target file path
    * @returns Promise resolving when file is saved
@@ -715,11 +733,11 @@ export class S3StorageProvider extends BaseStorageProvider {
   private async streamToFile(stream: Readable, filePath: string): Promise<void> {
     const fs = await import('fs');
     const writeStream = fs.createWriteStream(filePath);
-    
+
     return new Promise((resolve, reject) => {
       stream.pipe(writeStream);
       writeStream.on('finish', resolve);
       writeStream.on('error', reject);
     });
   }
-} 
+}

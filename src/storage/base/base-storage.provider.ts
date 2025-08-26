@@ -1,10 +1,10 @@
 /**
  * Abstract base class for storage providers
- * 
+ *
  * This class provides common functionality and validation that all storage providers
  * can inherit from. It implements the IStorageProvider interface and provides
  * default implementations for common operations.
- * 
+ *
  * Key Features:
  * - Common validation logic for file paths, sizes, and content types
  * - File processing pipeline with support for resize, compress, and format conversion
@@ -38,11 +38,11 @@ import {
 
 /**
  * Abstract base class for storage providers
- * 
+ *
  * This class provides common functionality and validation that all storage providers
  * can inherit from. It implements the IStorageProvider interface and provides
  * default implementations for common operations.
- * 
+ *
  * Key Features:
  * - Common validation logic for file paths, sizes, and content types
  * - File processing pipeline with support for resize, compress, and format conversion
@@ -63,7 +63,7 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     try {
       // Validate input options
       this.validateUploadOptions(options);
-      
+
       // Process file if processing options are provided
       let processedContent = options.content;
       if (options.processOptions) {
@@ -74,7 +74,7 @@ export abstract class BaseStorageProvider implements IStorageProvider {
 
       // Perform the actual upload using the concrete implementation
       const result = await this.performUpload(options, processedContent);
-      
+
       this.logger.log(`File uploaded successfully: ${result.filePath}`);
       return result;
     } catch (error) {
@@ -99,10 +99,10 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     try {
       // Validate input options
       this.validateDownloadOptions(options);
-      
+
       // Perform the actual download using the concrete implementation
       const result = await this.performDownload(options);
-      
+
       this.logger.log(`File downloaded successfully: ${options.filePath}`);
       return result;
     } catch (error) {
@@ -133,10 +133,10 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     try {
       // Validate file path
       this.validateFilePath(filePath);
-      
+
       // Perform the actual deletion using the concrete implementation
       const result = await this.performDelete(filePath);
-      
+
       this.logger.log(`File deleted successfully: ${filePath}`);
       return result;
     } catch (error) {
@@ -174,10 +174,10 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     try {
       // Validate file path
       this.validateFilePath(filePath);
-      
+
       // Perform the actual metadata update using the concrete implementation
       const result = await this.performUpdateMetadata(filePath, metadata);
-      
+
       this.logger.log(`Metadata updated successfully for ${filePath}`);
       return result;
     } catch (error) {
@@ -222,7 +222,7 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     try {
       // Validate input options
       this.validateCopyOptions(options);
-      
+
       // Download the source file
       const downloadResult = await this.download({ filePath: options.sourcePath });
       if (!downloadResult.success) {
@@ -246,7 +246,9 @@ export abstract class BaseStorageProvider implements IStorageProvider {
       // Get metadata for the copied file
       const metadata = await this.getMetadata(options.destinationPath);
 
-      this.logger.log(`File copied successfully from ${options.sourcePath} to ${options.destinationPath}`);
+      this.logger.log(
+        `File copied successfully from ${options.sourcePath} to ${options.destinationPath}`
+      );
       return {
         success: true,
         sourcePath: options.sourcePath,
@@ -255,7 +257,9 @@ export abstract class BaseStorageProvider implements IStorageProvider {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Copy failed from ${options.sourcePath} to ${options.destinationPath}: ${errorMessage}`);
+      this.logger.error(
+        `Copy failed from ${options.sourcePath} to ${options.destinationPath}: ${errorMessage}`
+      );
       return {
         success: false,
         sourcePath: options.sourcePath,
@@ -284,7 +288,7 @@ export abstract class BaseStorageProvider implements IStorageProvider {
       // Validate input paths
       this.validateFilePath(sourcePath);
       this.validateFilePath(destinationPath);
-      
+
       // Copy the file to the new location
       const copyResult = await this.copy({
         sourcePath,
@@ -349,7 +353,7 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     try {
       // Validate file path
       this.validateFilePath(filePath);
-      
+
       // Download the file for processing
       const downloadResult = await this.download({ filePath });
       if (!downloadResult.success) {
@@ -358,10 +362,10 @@ export abstract class BaseStorageProvider implements IStorageProvider {
 
       // Process the file content
       const processed = await this.processFile(downloadResult.content, options);
-      
+
       // Determine output path
       const outputPath = options.outputPath || filePath;
-      
+
       // Upload the processed file
       const uploadOptions: UploadOptions = {
         content: processed.content,
@@ -445,17 +449,23 @@ export abstract class BaseStorageProvider implements IStorageProvider {
   abstract getProviderInfo(): Promise<StorageProviderInfo>;
 
   // Protected abstract methods that concrete providers must implement
-  protected abstract performUpload(options: UploadOptions, content: Buffer | Readable): Promise<UploadResult>;
+  protected abstract performUpload(
+    options: UploadOptions,
+    content: Buffer | Readable
+  ): Promise<UploadResult>;
   protected abstract performDownload(options: DownloadOptions): Promise<DownloadResult>;
   protected abstract performDelete(filePath: string): Promise<DeleteResult>;
-  protected abstract performUpdateMetadata(filePath: string, metadata: Record<string, string>): Promise<UpdateResult>;
+  protected abstract performUpdateMetadata(
+    filePath: string,
+    metadata: Record<string, string>
+  ): Promise<UpdateResult>;
 
   // Validation methods
   protected validateFilePath(filePath: string): void {
     if (!filePath || typeof filePath !== 'string') {
       throw new Error('File path must be a non-empty string');
     }
-    
+
     if (filePath.includes('..') || filePath.includes('//')) {
       throw new Error('Invalid file path: contains invalid characters');
     }
@@ -465,7 +475,7 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     if (size <= 0) {
       throw new Error('File size must be greater than 0');
     }
-    
+
     // Default max file size: 100MB
     const maxSize = 100 * 1024 * 1024;
     if (size > maxSize) {
@@ -487,11 +497,11 @@ export abstract class BaseStorageProvider implements IStorageProvider {
 
   protected validateUploadOptions(options: UploadOptions): void {
     this.validateFilePath(options.filePath);
-    
+
     if (!options.content) {
       throw new Error('File content is required');
     }
-    
+
     if (options.contentType) {
       this.validateContentType(options.contentType);
     }
@@ -504,63 +514,66 @@ export abstract class BaseStorageProvider implements IStorageProvider {
   protected validateCopyOptions(options: CopyOptions): void {
     this.validateFilePath(options.sourcePath);
     this.validateFilePath(options.destinationPath);
-    
+
     if (options.sourcePath === options.destinationPath) {
       throw new Error('Source and destination paths cannot be the same');
     }
   }
 
   // File processing methods
-  protected async processFile(content: Buffer | Readable, options: ProcessOptions): Promise<{ content: Buffer | Readable; contentType: string }> {
+  protected async processFile(
+    content: Buffer | Readable,
+    options: ProcessOptions
+  ): Promise<{ content: Buffer | Readable; contentType: string }> {
     // This is a simplified implementation
     // In a real implementation, you would use libraries like Sharp for image processing
     // For now, we'll return the content as-is
-    
-    let processedContent = content;
+
+    const processedContent = content;
     let contentType = 'application/octet-stream';
-    
+
     // Basic content type detection for Buffer
     if (Buffer.isBuffer(content)) {
       contentType = this.detectContentType(content);
     }
-    
+
     // Apply processing operations if specified
     if (options.operations) {
       if (options.operations.resize) {
         // Resize logic would go here
         this.logger.debug('Resize operation requested but not implemented');
       }
-      
+
       if (options.operations.compress) {
         // Compression logic would go here
         this.logger.debug('Compression operation requested but not implemented');
       }
-      
+
       if (options.operations.convert) {
         // Format conversion logic would go here
         this.logger.debug('Format conversion requested but not implemented');
       }
     }
-    
+
     return { content: processedContent, contentType };
   }
 
   protected detectContentType(buffer: Buffer): string {
     // Basic content type detection based on file signatures
     const signatures: Record<string, number[]> = {
-      'image/jpeg': [0xFF, 0xD8, 0xFF],
-      'image/png': [0x89, 0x50, 0x4E, 0x47],
+      'image/jpeg': [0xff, 0xd8, 0xff],
+      'image/png': [0x89, 0x50, 0x4e, 0x47],
       'image/gif': [0x47, 0x49, 0x46],
       'image/webp': [0x52, 0x49, 0x46, 0x46],
       'application/pdf': [0x25, 0x50, 0x44, 0x46],
     };
-    
+
     for (const [mimeType, signature] of Object.entries(signatures)) {
       if (this.matchesSignature(buffer, signature)) {
         return mimeType;
       }
     }
-    
+
     return 'application/octet-stream';
   }
 
@@ -568,26 +581,26 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     if (buffer.length < signature.length) {
       return false;
     }
-    
+
     for (let i = 0; i < signature.length; i++) {
       if (buffer[i] !== signature[i]) {
         return false;
       }
     }
-    
+
     return true;
   }
 
   protected getProcessedOperations(options: ProcessOptions): string[] {
     const operations: string[] = [];
-    
+
     if (options.operations) {
       if (options.operations.resize) operations.push('resize');
       if (options.operations.compress) operations.push('compress');
       if (options.operations.convert) operations.push('convert');
       if (options.operations.filters) operations.push('filters');
     }
-    
+
     return operations;
   }
-} 
+}

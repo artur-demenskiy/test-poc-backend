@@ -1,8 +1,9 @@
 import { Readable } from 'stream';
+import { Buffer } from 'buffer';
 
 /**
  * Core Storage Interface for Pluggable Storage Layer
- * 
+ *
  * This interface defines the contract that all storage providers must implement.
  * It provides a unified API for file operations across different storage backends.
  */
@@ -462,4 +463,4 @@ export interface MoveResult {
   metadata: FileMetadata;
   /** Error message if move failed */
   error?: string;
-} 
+}
