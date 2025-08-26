@@ -46,7 +46,7 @@ export class AppConfigService {
    * Get allowed origins for CORS
    */
   get allowedOrigins(): string[] {
-    return this.configService.get('ALLOWED_ORIGINS', { infer: true }) || [];
+    return this.configService.get('ALLOWED_ORIGINS') || [];
   }
 
   /**

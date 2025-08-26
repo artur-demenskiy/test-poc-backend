@@ -381,7 +381,7 @@ export abstract class BaseStorageProvider implements IStorageProvider {
       }
 
       // Get metadata for the processed file
-      const metadata = await this.getMetadata(outputPath);
+      // const metadata = await this.getMetadata(outputPath);
 
       this.logger.log(`File processed successfully: ${filePath} -> ${outputPath}`);
       return {
@@ -419,11 +419,11 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     try {
       // Validate file path
       this.validateFilePath(filePath);
-      
+
       // For most providers, setting private means removing public access
       // This is a simplified implementation - concrete providers may override
       await this.getMetadata(filePath);
-      
+
       this.logger.log(`File access set to private: ${filePath}`);
       return {
         success: true,
@@ -487,7 +487,7 @@ export abstract class BaseStorageProvider implements IStorageProvider {
     if (!contentType || typeof contentType !== 'string') {
       throw new Error('Content type must be a non-empty string');
     }
-    
+
     // Basic MIME type validation
     const mimeTypePattern = /^[a-zA-Z0-9]+\/[a-zA-Z0-9\-\.\+]+$/;
     if (!mimeTypePattern.test(contentType)) {

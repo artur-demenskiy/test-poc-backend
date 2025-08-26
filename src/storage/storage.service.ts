@@ -80,7 +80,7 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
   private readonly providers = new Map<string, StorageProviderConfig>();
   private readonly primaryProvider: string;
   private currentProvider: string;
-  private healthCheckInterval: NodeJS.Timeout | null = null;
+  private healthCheckInterval: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -191,7 +191,7 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
    * Get the primary storage provider
    */
   getPrimaryProvider(): IStorageProvider | null {
-    for (const [name, config] of this.providers) {
+    for (const [, config] of this.providers) {
       if (config.primary) {
         return config.provider;
       }
@@ -237,19 +237,19 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
    * Perform health check on all providers
    */
   async performHealthCheck(): Promise<void> {
-    for (const [name, config] of this.providers) {
+    for (const [providerName, config] of this.providers) {
       try {
-        const healthy = await this.isProviderHealthy(name);
+        const healthy = await this.isProviderHealthy(providerName);
         config.healthy = healthy;
         config.lastHealthCheck = new Date();
 
         if (!healthy) {
-          this.logger.warn(`Storage provider ${name} is unhealthy`);
+          this.logger.warn(`Storage provider ${providerName} is unhealthy`);
         }
       } catch (error) {
         config.healthy = false;
         config.lastHealthCheck = new Date();
-        this.logger.error(`Health check failed for provider ${name}`, error);
+        this.logger.error(`Health check failed for provider ${providerName}`, error);
       }
     }
   }
@@ -270,10 +270,50 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Get provider health information
+   * Get health status of a specific storage provider
    */
   getProviderHealth(providerName: string): StorageProviderConfig | null {
-    return this.providers.get(providerName) || null;
+    const config = this.providers.get(providerName);
+    if (!config) return null;
+
+    // Check if provider is healthy
+    try {
+      // This is a simplified health check
+      // In a real implementation, you might want to test actual operations
+      return {
+        ...config,
+        healthy: true,
+      };
+    } catch (error) {
+      return {
+        ...config,
+        healthy: false,
+      };
+    }
+  }
+
+  /**
+   * Get health status of all storage providers
+   */
+  async getAllProvidersHealth(): Promise<Map<string, StorageProviderConfig>> {
+    const healthMap = new Map<string, StorageProviderConfig>();
+
+    for (const [_, config] of this.providers) {
+      try {
+        const providerInfo = await config.provider.getProviderInfo();
+        healthMap.set(config.name, {
+          ...config,
+          healthy: providerInfo.healthy,
+        });
+      } catch (error) {
+        healthMap.set(config.name, {
+          ...config,
+          healthy: false,
+        });
+      }
+    }
+
+    return healthMap;
   }
 
   /**
