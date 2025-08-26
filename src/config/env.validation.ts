@@ -48,8 +48,11 @@ export function validateEnv(config: Record<string, unknown>): EnvironmentVariabl
   // Simplified validation without Zod
   const portStr = (config.PORT as string) || '3000';
   const port = parseInt(portStr, 10);
-  const nodeEnv = (config.NODE_ENV as string) || 'development';
-  const logLevel = (config.LOG_LEVEL as string) || 'info';
+
+  // For validation tests, we need to check the actual provided values
+  const nodeEnv = config.NODE_ENV as string;
+  const logLevel = config.LOG_LEVEL as string;
+
   const allowedOrigins = (config.ALLOWED_ORIGINS as string) || '';
 
   // Check if port is a valid number
@@ -57,23 +60,20 @@ export function validateEnv(config: Record<string, unknown>): EnvironmentVariabl
     throw new Error('Invalid environment variables');
   }
 
-  // Check if nodeEnv is valid (only if provided)
-  if (config.NODE_ENV !== undefined && !['development', 'production', 'test'].includes(nodeEnv)) {
+  // Check if nodeEnv is valid (including empty strings and invalid values)
+  if (nodeEnv !== undefined && !['development', 'production', 'test'].includes(nodeEnv)) {
     throw new Error('Invalid environment variables');
   }
 
-  // Check if logLevel is valid (only if provided)
-  if (
-    config.LOG_LEVEL !== undefined &&
-    !['error', 'warn', 'info', 'debug', 'verbose'].includes(logLevel)
-  ) {
+  // Check if logLevel is valid (including empty strings and invalid values)
+  if (logLevel !== undefined && !['error', 'warn', 'info', 'debug', 'verbose'].includes(logLevel)) {
     throw new Error('Invalid environment variables');
   }
 
   return {
     PORT: port,
-    NODE_ENV: nodeEnv as 'development' | 'production' | 'test',
-    LOG_LEVEL: logLevel as 'error' | 'warn' | 'info' | 'debug' | 'verbose',
+    NODE_ENV: (nodeEnv || 'development') as 'development' | 'production' | 'test',
+    LOG_LEVEL: (logLevel || 'info') as 'error' | 'warn' | 'info' | 'debug' | 'verbose',
     ALLOWED_ORIGINS: allowedOrigins ? allowedOrigins.split(',').map(origin => origin.trim()) : [],
   };
 }

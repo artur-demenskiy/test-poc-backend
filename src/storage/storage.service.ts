@@ -1,86 +1,24 @@
 /**
- * Storage Service - Central service for managing multiple storage providers
- *
- * This service provides a unified interface to multiple storage providers,
- * including automatic provider selection, fallback mechanisms, and health monitoring.
- *
- * Key Features:
- * - Multi-provider management with automatic selection
- * - Health monitoring and automatic fallback
- * - Provider switching and load balancing
- * - Unified API for all storage operations
- * - Error handling and retry logic
+ * Storage Service - Simple and focused storage management
  */
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { setInterval, clearInterval } from 'timers';
-import {
-  IStorageProvider,
-  UploadOptions,
-  UploadResult,
-  DownloadOptions,
-  DownloadResult,
-  DeleteResult,
-  FileMetadata,
-  UpdateResult,
-  ListResult,
-  AccessControlResult,
-  StorageProviderInfo,
-  ListOptions,
-  UrlOptions,
-  ProcessOptions,
-  ProcessResult,
-  CopyOptions,
-  CopyResult,
-  MoveResult,
-} from './interfaces/storage.interface';
+import { Buffer } from 'buffer';
+import { IStorageProvider } from './interfaces/storage.interface';
 import { S3StorageProvider } from './providers/s3-storage.provider';
 import { SupabaseStorageProvider } from './providers/supabase-storage.provider';
 import { GCSStorageProvider } from './providers/gcs-storage.provider';
 import { MinIOStorageProvider } from './providers/minio-storage.provider';
 
 /**
- * Storage Provider Configuration
- */
-export interface StorageProviderConfig {
-  /** Provider instance */
-  provider: IStorageProvider;
-  /** Provider name */
-  name: string;
-  /** Provider type */
-  type: string;
-  /** Whether this is the primary provider */
-  primary: boolean;
-  /** Provider priority (lower number = higher priority) */
-  priority: number;
-  /** Whether the provider is healthy */
-  healthy: boolean;
-  /** Last health check timestamp */
-  lastHealthCheck: Date;
-  /** Provider-specific configuration */
-  config: Record<string, unknown>;
-}
-
-/**
- * Storage Service - Central service for managing multiple storage providers
- *
- * This service provides a unified interface to multiple storage providers,
- * including automatic provider selection, fallback mechanisms, and health monitoring.
- *
- * Key Features:
- * - Multi-provider management with automatic selection
- * - Health monitoring and automatic fallback
- * - Provider switching and load balancing
- * - Unified API for all storage operations
- * - Error handling and retry logic
+ * Storage Service - Simple and focused storage management
  */
 @Injectable()
-export class StorageService implements OnModuleInit, OnModuleDestroy {
+export class StorageService {
   private readonly logger = new Logger(StorageService.name);
-  private readonly providers = new Map<string, StorageProviderConfig>();
+  private readonly providers = new Map<string, IStorageProvider>();
   private readonly primaryProvider: string;
-  private currentProvider: string;
-  private healthCheckInterval: ReturnType<typeof setTimeout> | null = null;
+  private currentProvider: IStorageProvider;
 
   constructor(
     private readonly configService: ConfigService,
@@ -90,603 +28,120 @@ export class StorageService implements OnModuleInit, OnModuleDestroy {
     private readonly minioProvider: MinIOStorageProvider
   ) {
     this.primaryProvider = this.configService.get<string>('STORAGE_PRIMARY_PROVIDER', 's3');
-    this.currentProvider = this.primaryProvider;
+    this.initializeProviders();
   }
 
   /**
-   * Initialize the storage service
+   * Initialize available storage providers
    */
-  async onModuleInit(): Promise<void> {
-    await this.initializeProviders();
-    this.startHealthChecks();
-  }
+  private initializeProviders(): void {
+    // Add S3 provider if enabled
+    if (this.configService.get<boolean>('STORAGE_S3_ENABLED', false)) {
+      this.providers.set('s3', this.s3Provider);
+    }
 
-  /**
-   * Cleanup when module is destroyed
-   */
-  async onModuleDestroy(): Promise<void> {
-    this.stopHealthChecks();
-  }
+    // Add Supabase provider if enabled
+    if (this.configService.get<boolean>('STORAGE_SUPABASE_ENABLED', false)) {
+      this.providers.set('supabase', this.supabaseProvider);
+    }
 
-  /**
-   * Initialize all storage providers
-   */
-  private async initializeProviders(): Promise<void> {
-    try {
-      // Initialize S3 provider
-      if (this.configService.get<boolean>('STORAGE_S3_ENABLED', false)) {
-        this.providers.set('s3', {
-          provider: this.s3Provider,
-          name: 'AWS S3',
-          type: 's3',
-          primary: this.primaryProvider === 's3',
-          priority: 1,
-          healthy: true,
-          lastHealthCheck: new Date(),
-          config: {
-            bucket: this.configService.get<string>('STORAGE_S3_BUCKET'),
-            region: this.configService.get<string>('STORAGE_S3_REGION'),
-          },
-        });
-      }
+    // Add GCS provider if enabled
+    if (this.configService.get<boolean>('STORAGE_GCS_ENABLED', false)) {
+      this.providers.set('gcs', this.gcsProvider);
+    }
 
-      // Initialize Supabase provider
-      if (this.configService.get<boolean>('STORAGE_SUPABASE_ENABLED', false)) {
-        this.providers.set('supabase', {
-          provider: this.supabaseProvider,
-          name: 'Supabase Storage',
-          type: 'supabase',
-          primary: this.primaryProvider === 'supabase',
-          priority: 2,
-          healthy: true,
-          lastHealthCheck: new Date(),
-          config: {
-            bucket: this.configService.get<string>('STORAGE_SUPABASE_BUCKET'),
-            url: this.configService.get<string>('STORAGE_SUPABASE_URL'),
-          },
-        });
-      }
+    // Add MinIO provider if enabled
+    if (this.configService.get<boolean>('STORAGE_MINIO_ENABLED', false)) {
+      this.providers.set('minio', this.minioProvider);
+    }
 
-      // Initialize GCS provider
-      if (this.configService.get<boolean>('STORAGE_GCS_ENABLED', false)) {
-        this.providers.set('gcs', {
-          provider: this.gcsProvider,
-          name: 'Google Cloud Storage',
-          type: 'gcs',
-          primary: this.primaryProvider === 'gcs',
-          priority: 3,
-          healthy: true,
-          lastHealthCheck: new Date(),
-          config: {
-            bucket: this.configService.get<string>('STORAGE_GCS_BUCKET'),
-            projectId: this.configService.get<string>('STORAGE_GCS_PROJECT_ID'),
-          },
-        });
-      }
+    // Set current provider
+    this.currentProvider =
+      this.providers.get(this.primaryProvider) || this.providers.values().next().value;
 
-      // Initialize MinIO provider
-      if (this.configService.get<boolean>('STORAGE_MINIO_ENABLED', false)) {
-        this.providers.set('minio', {
-          provider: this.minioProvider,
-          name: 'MinIO',
-          type: 'minio',
-          primary: this.primaryProvider === 'minio',
-          priority: 4,
-          healthy: true,
-          lastHealthCheck: new Date(),
-          config: {
-            bucket: this.configService.get<string>('STORAGE_MINIO_BUCKET'),
-            endpoint: this.configService.get<string>('STORAGE_MINIO_ENDPOINT'),
-          },
-        });
-      }
-
-      this.logger.log(`Initialized ${this.providers.size} storage providers`);
-    } catch (error) {
-      this.logger.error('Failed to initialize storage providers', error);
+    if (!this.currentProvider) {
+      this.logger.warn('No storage providers available');
+    } else {
+      this.logger.log(`Using storage provider: ${this.primaryProvider}`);
     }
   }
 
   /**
-   * Get the primary storage provider
+   * Get the current storage provider
    */
-  getPrimaryProvider(): IStorageProvider | null {
-    for (const [, config] of this.providers) {
-      if (config.primary) {
-        return config.provider;
-      }
+  getProvider(): IStorageProvider {
+    if (!this.currentProvider) {
+      throw new Error('No storage provider available');
     }
-    return null;
-  }
-
-  /**
-   * Get the best available storage provider
-   */
-  getBestProvider(): IStorageProvider | null {
-    // Sort providers by priority and health status
-    const sortedProviders = Array.from(this.providers.values()).sort((a, b) => {
-      // Healthy providers first
-      if (a.healthy !== b.healthy) {
-        return a.healthy ? -1 : 1;
-      }
-      // Then by priority
-      return a.priority - b.priority;
-    });
-
-    return sortedProviders[0]?.provider || null;
-  }
-
-  /**
-   * Check if a provider is healthy
-   */
-  async isProviderHealthy(providerName: string): Promise<boolean> {
-    const config = this.providers.get(providerName);
-    if (!config) {
-      return false;
-    }
-
-    try {
-      await config.provider.getProviderInfo();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Perform health check on all providers
-   */
-  async performHealthCheck(): Promise<void> {
-    for (const [providerName, config] of this.providers) {
-      try {
-        const healthy = await this.isProviderHealthy(providerName);
-        config.healthy = healthy;
-        config.lastHealthCheck = new Date();
-
-        if (!healthy) {
-          this.logger.warn(`Storage provider ${providerName} is unhealthy`);
-        }
-      } catch (error) {
-        config.healthy = false;
-        config.lastHealthCheck = new Date();
-        this.logger.error(`Health check failed for provider ${providerName}`, error);
-      }
-    }
-  }
-
-  /**
-   * Get the current active provider
-   */
-  getCurrentProvider(): IStorageProvider | null {
-    const config = this.providers.get(this.currentProvider);
-    return config?.provider || null;
-  }
-
-  /**
-   * Get all available providers
-   */
-  getAllProviders(): Map<string, StorageProviderConfig> {
-    return new Map(this.providers);
-  }
-
-  /**
-   * Get health status of a specific storage provider
-   */
-  getProviderHealth(providerName: string): StorageProviderConfig | null {
-    const config = this.providers.get(providerName);
-    if (!config) return null;
-
-    // Check if provider is healthy
-    try {
-      // This is a simplified health check
-      // In a real implementation, you might want to test actual operations
-      return {
-        ...config,
-        healthy: true,
-      };
-    } catch (error) {
-      return {
-        ...config,
-        healthy: false,
-      };
-    }
-  }
-
-  /**
-   * Get health status of all storage providers
-   */
-  async getAllProvidersHealth(): Promise<Map<string, StorageProviderConfig>> {
-    const healthMap = new Map<string, StorageProviderConfig>();
-
-    for (const [_, config] of this.providers) {
-      try {
-        const providerInfo = await config.provider.getProviderInfo();
-        healthMap.set(config.name, {
-          ...config,
-          healthy: providerInfo.healthy,
-        });
-      } catch (error) {
-        healthMap.set(config.name, {
-          ...config,
-          healthy: false,
-        });
-      }
-    }
-
-    return healthMap;
+    return this.currentProvider;
   }
 
   /**
    * Switch to a different storage provider
    */
-  async switchProvider(providerName: string): Promise<boolean> {
-    if (!this.providers.has(providerName)) {
+  async switchProvider(providerName: string): Promise<void> {
+    const provider = this.providers.get(providerName);
+    if (!provider) {
       throw new Error(`Provider ${providerName} not found`);
     }
 
-    const config = this.providers.get(providerName);
-    if (!config?.healthy) {
+    const isHealthy = await provider.isHealthy();
+    if (!isHealthy) {
       throw new Error(`Provider ${providerName} is not healthy`);
     }
 
-    this.currentProvider = providerName;
+    this.currentProvider = provider;
     this.logger.log(`Switched to storage provider: ${providerName}`);
-    return true;
-  }
-
-  // Storage operation methods - these proxy to the current provider
-
-  /**
-   * Upload a file to storage
-   */
-  async upload(options: UploadOptions): Promise<UploadResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.upload(options);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Upload failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.upload(options);
-      }
-      throw error;
-    }
   }
 
   /**
-   * Download a file from storage
+   * Get all available providers
    */
-  async download(options: DownloadOptions): Promise<DownloadResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.download(options);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Download failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.download(options);
-      }
-      throw error;
-    }
+  getProviders(): Map<string, IStorageProvider> {
+    return new Map(this.providers);
   }
 
   /**
-   * Delete a file from storage
+   * Check provider health
    */
-  async delete(filePath: string): Promise<DeleteResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
+  async isHealthy(): Promise<boolean> {
+    if (!this.currentProvider) {
+      return false;
     }
-
-    try {
-      return await provider.delete(filePath);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Delete failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.delete(filePath);
-      }
-      throw error;
-    }
+    return await this.currentProvider.isHealthy();
   }
 
-  /**
-   * Check if a file exists in storage
-   */
-  async exists(filePath: string): Promise<boolean> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
+  // Proxy methods to current provider
 
-    try {
-      return await provider.exists(filePath);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(
-          `Exists check failed on ${this.currentProvider}, trying fallback provider`
-        );
-        return await fallbackProvider.exists(filePath);
-      }
-      throw error;
-    }
+  async upload(
+    file: Buffer | unknown,
+    path: string,
+    options?: Record<string, unknown>
+  ): Promise<unknown> {
+    return this.getProvider().upload(file as Buffer, path, options);
   }
 
-  /**
-   * Get metadata for a file
-   */
-  async getMetadata(filePath: string): Promise<FileMetadata> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.getMetadata(filePath);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(
-          `Get metadata failed on ${this.currentProvider}, trying fallback provider`
-        );
-        return await fallbackProvider.getMetadata(filePath);
-      }
-      throw error;
-    }
+  async download(path: string): Promise<unknown> {
+    return this.getProvider().download(path);
   }
 
-  /**
-   * Update metadata for a file
-   */
-  async updateMetadata(filePath: string, metadata: Record<string, string>): Promise<UpdateResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.updateMetadata(filePath, metadata);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(
-          `Update metadata failed on ${this.currentProvider}, trying fallback provider`
-        );
-        return await fallbackProvider.updateMetadata(filePath, metadata);
-      }
-      throw error;
-    }
+  async delete(path: string): Promise<unknown> {
+    return this.getProvider().delete(path);
   }
 
-  /**
-   * List files in a directory
-   */
-  async listFiles(options: ListOptions): Promise<ListResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.listFiles(options);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`List files failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.listFiles(options);
-      }
-      throw error;
-    }
+  async exists(path: string): Promise<boolean> {
+    return this.getProvider().exists(path);
   }
 
-  /**
-   * Generate a URL for accessing a file
-   */
-  async generateUrl(options: UrlOptions): Promise<string> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.generateUrl(options);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(
-          `Generate URL failed on ${this.currentProvider}, trying fallback provider`
-        );
-        return await fallbackProvider.generateUrl(options);
-      }
-      throw error;
-    }
+  async getMetadata(path: string): Promise<unknown> {
+    return this.getProvider().getMetadata(path);
   }
 
-  /**
-   * Copy a file to a new location
-   */
-  async copy(options: CopyOptions): Promise<CopyResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.copy(options);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Copy failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.copy(options);
-      }
-      throw error;
-    }
+  async getUrl(path: string, options?: Record<string, unknown>): Promise<string> {
+    return this.getProvider().getUrl(path, options);
   }
 
-  /**
-   * Move a file to a new location
-   */
-  async move(sourcePath: string, destinationPath: string): Promise<MoveResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.move(sourcePath, destinationPath);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Move failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.move(sourcePath, destinationPath);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Rename a file
-   */
-  async rename(oldPath: string, newPath: string): Promise<MoveResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.rename(oldPath, newPath);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Rename failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.rename(oldPath, newPath);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Process a file
-   */
-  async process(filePath: string, options: ProcessOptions): Promise<ProcessResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.process(filePath, options);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Process failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.process(filePath, options);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Set file access to public
-   */
-  async setPublic(filePath: string): Promise<AccessControlResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.setPublic(filePath);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Set public failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.setPublic(filePath);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Set file access to private
-   */
-  async setPrivate(filePath: string): Promise<AccessControlResult> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    try {
-      return await provider.setPrivate(filePath);
-    } catch (error) {
-      // Try fallback to another provider
-      const fallbackProvider = this.getBestProvider();
-      if (fallbackProvider && fallbackProvider !== provider) {
-        this.logger.warn(`Set private failed on ${this.currentProvider}, trying fallback provider`);
-        return await fallbackProvider.setPrivate(filePath);
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Get information about the current storage provider
-   */
-  async getProviderInfo(): Promise<StorageProviderInfo> {
-    const provider = this.getCurrentProvider();
-    if (!provider) {
-      throw new Error('No storage provider available');
-    }
-
-    return await provider.getProviderInfo();
-  }
-
-  // Private methods
-
-  /**
-   * Start periodic health checks
-   */
-  private startHealthChecks(): void {
-    const interval = this.configService.get<number>('STORAGE_HEALTH_CHECK_INTERVAL', 30000); // 30 seconds
-
-    this.healthCheckInterval = setInterval(async () => {
-      await this.performHealthCheck();
-    }, interval);
-
-    this.logger.log(`Started health checks every ${interval}ms`);
-  }
-
-  /**
-   * Stop periodic health checks
-   */
-  private stopHealthChecks(): void {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-      this.healthCheckInterval = null;
-      this.logger.log('Stopped health checks');
-    }
+  async listFiles(path: string, options?: Record<string, unknown>): Promise<unknown> {
+    return this.getProvider().listFiles(path, options);
   }
 }
