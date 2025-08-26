@@ -6,10 +6,11 @@ import { HealthModule } from './health/health.module';
 import { AppConfigModule } from './config/config.module';
 import { SecurityModule } from './security/security.module';
 import { LoggingModule } from './logging/logging.module';
+import { StorageModule } from './storage/storage.module';
 import { RequestLoggerMiddleware } from './middleware/request-logger.middleware';
 
 @Module({
-  imports: [AppConfigModule, SecurityModule, HealthModule, LoggingModule],
+  imports: [AppConfigModule, SecurityModule, HealthModule, LoggingModule, StorageModule],
   controllers: [AppController],
   providers: [
     AppService,
