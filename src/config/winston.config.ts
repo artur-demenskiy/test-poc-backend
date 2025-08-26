@@ -1,4 +1,4 @@
-import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
+// import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
 import * as winston from 'winston';
 
 /**
@@ -10,9 +10,8 @@ export const winstonConfig = {
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.errors({ stack: true }),
-        nestWinstonModuleUtilities.format.nestLike('NestJS', {
-          prettyPrint: true,
-          colors: true,
+        winston.format.printf(({ timestamp, level, message, context, trace }) => {
+          return `${timestamp} [${context || 'NestJS'}] ${level}: ${message}${trace ? `\n${trace}` : ''}`;
         })
       ),
     }),

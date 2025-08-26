@@ -1,7 +1,7 @@
-import { envValidationSchema, validateEnv, EnvironmentVariables } from './env.validation';
+import { validateEnv, EnvironmentVariables } from './env.validation';
 
 describe('Environment Validation', () => {
-  describe('envValidationSchema', () => {
+  describe('validateEnv', () => {
     it('should validate correct environment variables', () => {
       const validEnv = {
         PORT: '3000',
@@ -9,27 +9,21 @@ describe('Environment Validation', () => {
         LOG_LEVEL: 'info',
       };
 
-      const result = envValidationSchema.safeParse(validEnv);
+      const result = validateEnv(validEnv);
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.PORT).toBe(3000);
-        expect(result.data.NODE_ENV).toBe('development');
-        expect(result.data.LOG_LEVEL).toBe('info');
-      }
+      expect(result.PORT).toBe(3000);
+      expect(result.NODE_ENV).toBe('development');
+      expect(result.LOG_LEVEL).toBe('info');
     });
 
     it('should use default values when environment variables are missing', () => {
       const envWithDefaults = {};
 
-      const result = envValidationSchema.safeParse(envWithDefaults);
+      const result = validateEnv(envWithDefaults);
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.PORT).toBe(3000);
-        expect(result.data.NODE_ENV).toBe('development');
-        expect(result.data.LOG_LEVEL).toBe('info');
-      }
+      expect(result.PORT).toBe(3000);
+      expect(result.NODE_ENV).toBe('development');
+      expect(result.LOG_LEVEL).toBe('info');
     });
 
     it('should transform PORT string to number', () => {
@@ -37,57 +31,50 @@ describe('Environment Validation', () => {
         PORT: '8080',
       };
 
-      const result = envValidationSchema.safeParse(envWithStringPort);
+      const result = validateEnv(envWithStringPort);
 
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.PORT).toBe(8080);
-        expect(typeof result.data.PORT).toBe('number');
-      }
+      expect(result.PORT).toBe(8080);
+      expect(typeof result.PORT).toBe('number');
     });
 
     it('should validate PORT range', () => {
-      const invalidPorts = ['0', '65536', '-1', 'abc'];
-
-      invalidPorts.forEach(port => {
-        const result = envValidationSchema.safeParse({ PORT: port });
-        expect(result.success).toBe(false);
-      });
-
       const validPorts = ['1', '1024', '3000', '65535'];
       validPorts.forEach(port => {
-        const result = envValidationSchema.safeParse({ PORT: port });
-        expect(result.success).toBe(true);
+        const result = validateEnv({ PORT: port });
+        expect(result.PORT).toBe(parseInt(port, 10));
+      });
+
+      const invalidPorts = ['0', '65536', '-1', 'abc'];
+      invalidPorts.forEach(port => {
+        expect(() => validateEnv({ PORT: port })).toThrow();
       });
     });
 
     it('should validate NODE_ENV enum values', () => {
       const validEnvs = ['development', 'production', 'test'];
-      const invalidEnvs = ['staging', 'dev', 'prod', ''];
-
       validEnvs.forEach(env => {
-        const result = envValidationSchema.safeParse({ NODE_ENV: env });
-        expect(result.success).toBe(true);
+        const result = validateEnv({ NODE_ENV: env });
+        expect(result.NODE_ENV).toBe(env);
       });
 
+      const invalidEnvs = ['staging', 'dev', 'prod', ''];
       invalidEnvs.forEach(env => {
-        const result = envValidationSchema.safeParse({ NODE_ENV: env });
-        expect(result.success).toBe(false);
+        expect(() => validateEnv({ NODE_ENV: env, PORT: '3000', LOG_LEVEL: 'info' })).toThrow();
       });
     });
 
     it('should validate LOG_LEVEL enum values', () => {
       const validLevels = ['error', 'warn', 'info', 'debug', 'verbose'];
-      const invalidLevels = ['trace', 'log', ''];
-
       validLevels.forEach(level => {
-        const result = envValidationSchema.safeParse({ LOG_LEVEL: level });
-        expect(result.success).toBe(true);
+        const result = validateEnv({ LOG_LEVEL: level });
+        expect(result.LOG_LEVEL).toBe(level);
       });
 
+      const invalidLevels = ['trace', 'log', ''];
       invalidLevels.forEach(level => {
-        const result = envValidationSchema.safeParse({ LOG_LEVEL: level });
-        expect(result.success).toBe(false);
+        expect(() =>
+          validateEnv({ LOG_LEVEL: level, PORT: '3000', NODE_ENV: 'development' })
+        ).toThrow();
       });
     });
   });
