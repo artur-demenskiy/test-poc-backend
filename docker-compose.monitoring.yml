@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  # Prometheus - система мониторинга и алертинга
-  # Собирает метрики с приложения через HTTP эндпоинт /metrics
+  # Prometheus - monitoring and alerting system
+  # Collects metrics from application via HTTP endpoint /metrics
   prometheus:
     image: prom/prometheus:v2.45.0
     container_name: prometheus
@@ -23,20 +23,20 @@ services:
     networks:
       - monitoring
 
-  # Grafana - платформа для визуализации метрик
-  # Подключается к Prometheus как источнику данных
+  # Grafana - metrics visualization platform
+  # Connects to Prometheus as data source
   grafana:
     image: grafana/grafana-oss:10.0.3
     container_name: grafana
     restart: unless-stopped
     ports:
-      - "3001:3000"  # Используем 3001 чтобы не конфликтовать с приложением на 3000
+      - "3001:3000"  # Use 3001 to avoid conflict with application on 3000
     environment:
-      # Настройки безопасности Grafana
+      # Grafana security settings
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin123
       - GF_USERS_ALLOW_SIGN_UP=false
-      # Настройки для автоматической конфигурации
+      # Settings for automatic configuration
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana_data:/var/lib/grafana
@@ -47,8 +47,8 @@ services:
     depends_on:
       - prometheus
 
-  # Node Exporter - собирает системные метрики хоста
-  # Полезен для мониторинга сервера где запущено приложение
+  # Node Exporter - collects host system metrics
+  # Useful for monitoring server where application is running
   node-exporter:
     image: prom/node-exporter:v1.6.1
     container_name: node-exporter
@@ -67,8 +67,8 @@ services:
     networks:
       - monitoring
 
-  # cAdvisor - собирает метрики Docker контейнеров
-  # Мониторит использование ресурсов контейнерами
+  # cAdvisor - collects Docker container metrics
+  # Monitors resource usage by containers
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.2
     container_name: cadvisor
@@ -86,14 +86,14 @@ services:
     networks:
       - monitoring
 
-# Именованные тома для сохранения данных
+# Named volumes for data persistence
 volumes:
   prometheus_data:
     driver: local
   grafana_data:
     driver: local
 
-# Сеть для изоляции компонентов мониторинга
+# Network for monitoring components isolation
 networks:
   monitoring:
     driver: bridge

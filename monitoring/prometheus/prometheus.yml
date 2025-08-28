@@ -1,57 +1,57 @@
-# Глобальная конфигурация Prometheus
+# Global Prometheus configuration
 global:
-  # Интервал сбора метрик по умолчанию
+  # Default metrics collection interval
   scrape_interval: 15s
-  # Интервал оценки правил алертинга
+  # Alert rules evaluation interval
   evaluation_interval: 15s
-  # Добавляем внешние лейблы к метрикам
+  # Add external labels to metrics
   external_labels:
     monitor: 'nestjs-app-monitor'
 
-# Конфигурация правил алертинга (можно добавить позже)
+# Alert rules configuration (can be added later)
 rule_files:
   # - "alert_rules.yml"
 
-# Конфигурация scraping - откуда собирать метрики
+# Scraping configuration - where to collect metrics from
 scrape_configs:
-  # Сбор метрик с самого Prometheus
+  # Collect metrics from Prometheus itself
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
     scrape_interval: 30s
     metrics_path: '/metrics'
 
-  # Сбор метрик с NestJS приложения
-  # Основной источник метрик нашего приложения
+  # Collect metrics from NestJS application
+  # Main source of our application metrics
   - job_name: 'nestjs-app'
     static_configs:
-      - targets: ['host.docker.internal:3000']  # Для Docker на Mac/Windows
-      # - targets: ['172.17.0.1:3000']         # Для Docker на Linux
+      - targets: ['host.docker.internal:3000']  # For Docker on Mac/Windows
+      # - targets: ['172.17.0.1:3000']         # For Docker on Linux
     scrape_interval: 15s
     metrics_path: '/metrics'
     scrape_timeout: 10s
-    # Добавляем лейблы для идентификации приложения
+    # Add labels for application identification
     relabel_configs:
       - target_label: 'app'
         replacement: 'nestjs-boilerplate'
       - target_label: 'environment'
         replacement: 'development'
 
-  # Сбор системных метрик с Node Exporter
+  # Collect system metrics from Node Exporter
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
     scrape_interval: 30s
     metrics_path: '/metrics'
 
-  # Сбор метрик Docker контейнеров с cAdvisor
+  # Collect Docker container metrics from cAdvisor
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080']
     scrape_interval: 30s
     metrics_path: '/metrics'
 
-# Конфигурация Alertmanager (для будущего использования)
+# Alertmanager configuration (for future use)
 # alerting:
 #   alertmanagers:
 #     - static_configs:

@@ -586,5 +586,5 @@
   "title": "NestJS Application Overview",
   "uid": "nestjs-overview",
   "version": 1,
-  "description": "Базовый дашборд для мониторинга NestJS приложения с метриками HTTP запросов, производительности и системных ресурсов"
+  "description": "Basic dashboard for monitoring NestJS application with HTTP requests, performance and system resources metrics"
 }

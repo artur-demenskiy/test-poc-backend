@@ -1,9 +1,9 @@
-# Автоматическая настройка дашбордов в Grafana
-# Этот файл указывает Grafana где искать JSON файлы с дашбордами
+# Automatic dashboard configuration in Grafana
+# This file tells Grafana where to find JSON files with dashboards
 apiVersion: 1
 
 providers:
-  # Провайдер для дашбордов приложения
+  # Provider for application dashboards
   - name: 'default'
     orgId: 1
     folder: 'NestJS Application'
@@ -12,5 +12,5 @@ providers:
     updateIntervalSeconds: 10
     allowUiUpdates: true
     options:
-      # Путь к папке с JSON файлами дашбордов
+      # Path to folder with dashboard JSON files
       path: /var/lib/grafana/dashboards

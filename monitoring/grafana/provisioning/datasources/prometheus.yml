@@ -1,27 +1,27 @@
-# Автоматическая настройка источника данных Prometheus в Grafana
-# Этот файл автоматически создает подключение к Prometheus при запуске Grafana
+# Automatic Prometheus data source configuration in Grafana
+# This file automatically creates connection to Prometheus on Grafana startup
 apiVersion: 1
 
 datasources:
-  # Основной источник данных - Prometheus
+  # Main data source - Prometheus
   - name: Prometheus
     type: prometheus
     access: proxy
-    # URL подключения к Prometheus внутри Docker сети
+    # Prometheus connection URL inside Docker network
     url: http://prometheus:9090
     isDefault: true
-    # Настройки подключения
+    # Connection settings
     httpMethod: POST
     basicAuth: false
     withCredentials: false
-    # Интервал обновления метрик
+    # Metrics refresh interval
     jsonData:
       httpMethod: POST
       timeInterval: "15s"
       queryTimeout: "60s"
-      # Включаем поддержку Exemplars для трейсинга (опционально)
+      # Enable Exemplars support for tracing (optional)
       exemplarTraceIdDestinations:
         - name: trace_id
-          datasourceUid: tempo  # Если будет добавлен Tempo для трейсинга
+          datasourceUid: tempo  # If Tempo will be added for tracing
     version: 1
     editable: true
