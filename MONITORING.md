@@ -22,7 +22,7 @@ pnpm run start:dev
   - Логин: `admin`
   - Пароль: `admin123`
 - **Node Exporter**: http://localhost:9100
-- **cAdvisor**: http://localhost:8081
+- **cAdvisor**: http://localhost:8080
 
 ## 📊 Компоненты системы
 
