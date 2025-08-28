@@ -1,0 +1,27 @@
+# Automatic Prometheus data source configuration in Grafana
+# This file automatically creates connection to Prometheus on Grafana startup
+apiVersion: 1
+
+datasources:
+  # Main data source - Prometheus
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    # Prometheus connection URL inside Docker network
+    url: http://prometheus:9090
+    isDefault: true
+    # Connection settings
+    httpMethod: POST
+    basicAuth: false
+    withCredentials: false
+    # Metrics refresh interval
+    jsonData:
+      httpMethod: POST
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      # Enable Exemplars support for tracing (optional)
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo  # If Tempo will be added for tracing
+    version: 1
+    editable: true

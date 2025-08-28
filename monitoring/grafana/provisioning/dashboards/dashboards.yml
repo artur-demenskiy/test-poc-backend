@@ -1,0 +1,16 @@
+# Automatic dashboard configuration in Grafana
+# This file tells Grafana where to find JSON files with dashboards
+apiVersion: 1
+
+providers:
+  # Provider for application dashboards
+  - name: 'default'
+    orgId: 1
+    folder: 'NestJS Application'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      # Path to folder with dashboard JSON files
+      path: /var/lib/grafana/dashboards

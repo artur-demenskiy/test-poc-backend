@@ -9,6 +9,7 @@ Production-ready NestJS boilerplate with TypeScript, featuring comprehensive con
 - **Configuration**: Environment-based with Zod validation
 - **Security**: Helmet, CORS, Rate limiting, Proxy support
 - **Health Checks**: Kubernetes-ready liveness/readiness probes
+- **Monitoring**: Prometheus metrics + Grafana dashboards
 - **Testing**: Jest unit tests + Supertest e2e tests
 - **Code Quality**: ESLint, Prettier, Husky, lint-staged
 - **Documentation**: Swagger API docs at `/docs`
@@ -143,6 +144,39 @@ pnpm test:e2e
 # All tests with coverage
 pnpm test:cov
 ```
+
+## 📊 Monitoring
+
+This boilerplate includes a comprehensive monitoring solution with Prometheus and Grafana:
+
+```bash
+# Start monitoring stack
+docker-compose -f docker-compose.monitoring.yml up -d
+
+# Start application
+pnpm run start:dev
+
+# Access monitoring interfaces
+# Grafana: http://localhost:3001 (admin/admin123)
+# Prometheus: http://localhost:9090
+# Application metrics: http://localhost:3000/metrics
+```
+
+### Available Metrics
+
+- **HTTP Metrics**: Request count, duration, error rates
+- **System Metrics**: CPU, memory, garbage collection
+- **Database Metrics**: Connection pool, query performance
+- **Custom Metrics**: Business logic specific metrics
+
+### Grafana Dashboards
+
+Pre-configured dashboards include:
+- Application Overview (HTTP requests, performance, errors)
+- System Resources (CPU, memory, network)
+- Database Performance
+
+For detailed monitoring setup and configuration, see [MONITORING.md](./MONITORING.md).
 
 ## 🔍 Code Quality
 
