@@ -2,10 +2,15 @@ import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { HealthCheckService, HealthCheck } from '@nestjs/terminus';
 
+import { DatabaseHealthIndicator } from './database.health.indicator';
+
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
-  constructor(private readonly _health: HealthCheckService) {}
+  constructor(
+    private readonly _health: HealthCheckService,
+    private readonly databaseHealthIndicator: DatabaseHealthIndicator
+  ) {}
 
   /**
    * Health check endpoint for liveness probe
@@ -30,8 +35,20 @@ export class HealthController {
       },
     },
   })
-  healthz() {
-    return this._health.check([]);
+  async healthz() {
+    const result = await this._health.check([
+      // Добавляем проверку базы данных
+      () => this.databaseHealthIndicator.isHealthy('database'),
+    ]);
+
+    // Обновляем метрики состояния приложения
+    // Если health check прошел успешно, считаем приложение здоровым
+    if (result.status === 'ok') {
+      // Здесь можно добавить специфичные метрики здоровья
+      // Например, время последней успешной проверки здоровья
+    }
+
+    return result;
   }
 
   /**
@@ -59,7 +76,18 @@ export class HealthController {
       },
     },
   })
-  readiness() {
-    return this._health.check([]);
+  async readiness() {
+    const result = await this._health.check([
+      // Для readiness также проверяем базу данных
+      () => this.databaseHealthIndicator.isHealthy('database'),
+    ]);
+
+    // Обновляем метрики готовности приложения
+    if (result.status === 'ok') {
+      // Приложение готово принимать трафик
+      // Можно обновить метрику времени последней успешной проверки готовности
+    }
+
+    return result;
   }
 }
