@@ -3,14 +3,14 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MonitoringService } from './monitoring.service';
 
 /**
- * Контроллер мониторинга
+ * Monitoring controller
  *
- * Предоставляет эндпоинты для получения метрик Prometheus:
- * - /metrics - метрики в формате Prometheus (для scraping)
- * - /metrics/json - метрики в JSON формате (для отладки)
+ * Provides endpoints for getting Prometheus metrics:
+ * - /metrics - metrics in Prometheus format (for scraping)
+ * - /metrics/json - metrics in JSON format (for debugging)
  *
- * Эндпоинт /metrics используется Prometheus сервером
- * для автоматического сбора метрик приложения
+ * The /metrics endpoint is used by Prometheus server
+ * for automatic collection of application metrics
  */
 @ApiTags('Monitoring')
 @Controller('metrics')
@@ -18,12 +18,12 @@ export class MonitoringController {
   constructor(private readonly monitoringService: MonitoringService) {}
 
   /**
-   * Получить метрики в формате Prometheus
+   * Get metrics in Prometheus format
    *
-   * Этот эндпоинт используется Prometheus сервером для scraping метрик.
-   * Возвращает метрики в текстовом формате, совместимом с Prometheus.
+   * This endpoint is used by Prometheus server for scraping metrics.
+   * Returns metrics in text format compatible with Prometheus.
    *
-   * @returns Метрики в формате Prometheus
+   * @returns Metrics in Prometheus format
    */
   @Get()
   @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
@@ -51,12 +51,12 @@ http_request_duration_seconds_bucket{method="GET",route="/api/health",status_cod
   }
 
   /**
-   * Получить метрики в JSON формате
+   * Get metrics in JSON format
    *
-   * Удобный эндпоинт для отладки и разработки.
-   * Возвращает метрики в структурированном JSON формате.
+   * Convenient endpoint for debugging and development.
+   * Returns metrics in structured JSON format.
    *
-   * @returns Метрики в JSON формате
+   * @returns Metrics in JSON format
    */
   @Get('json')
   @ApiOperation({

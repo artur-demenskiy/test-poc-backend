@@ -3,14 +3,14 @@ import { HealthIndicator, HealthIndicatorResult, HealthCheckError } from '@nestj
 import { MonitoringService } from '../monitoring/monitoring.service';
 
 /**
- * Кастомный health indicator для мониторинга состояния базы данных
+ * Custom health indicator for monitoring database state
  *
- * Проверяет:
- * - Доступность соединения с базой данных
- * - Время отклика на простой запрос
- * - Количество активных соединений
+ * Checks:
+ * - Database connection availability
+ * - Response time for simple query
+ * - Number of active connections
  *
- * Автоматически записывает метрики в Prometheus
+ * Automatically records metrics to Prometheus
  */
 @Injectable()
 export class DatabaseHealthIndicator extends HealthIndicator {
@@ -19,29 +19,29 @@ export class DatabaseHealthIndicator extends HealthIndicator {
   }
 
   /**
-   * Проверка состояния базы данных
+   * Database health check
    *
-   * @param key Ключ для идентификации проверки
-   * @returns Результат проверки здоровья БД
+   * @param key Key for check identification
+   * @returns Database health check result
    */
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
     const startTime = Date.now();
 
     try {
-      // Здесь должна быть реальная проверка БД
-      // Для примера используем простую симуляцию
+      // Here should be real database check
+      // For example, we use simple simulation
       await this.checkDatabaseConnection();
 
       const responseTime = Date.now() - startTime;
 
-      // Записываем метрики производительности БД
+      // Record database performance metrics
       this.monitoringService.recordDatabaseQueryDuration(
         'HEALTH_CHECK',
         'system',
-        responseTime / 1000 // конвертируем в секунды
+        responseTime / 1000 // convert to seconds
       );
 
-      // Симулируем количество активных соединений (в реальном приложении получаем из пула соединений)
+      // Simulate number of active connections (in real app get from connection pool)
       const activeConnections = this.getActiveConnectionsCount();
       this.monitoringService.setDatabaseConnections(activeConnections);
 
@@ -53,7 +53,7 @@ export class DatabaseHealthIndicator extends HealthIndicator {
 
       return result;
     } catch (error) {
-      // Записываем ошибку в метрики
+      // Record error to metrics
       this.monitoringService.incrementApplicationErrors('database_error', '/health');
 
       throw new HealthCheckError(
@@ -67,31 +67,31 @@ export class DatabaseHealthIndicator extends HealthIndicator {
   }
 
   /**
-   * Проверка соединения с базой данных
-   * В реальном приложении здесь должен быть код для проверки БД
+   * Check database connection
+   * In real application should be code for database checking
    */
   private async checkDatabaseConnection(): Promise<void> {
-    // Симуляция проверки БД
-    // В реальном приложении здесь должен быть код типа:
+    // Database check simulation
+    // In real application should be code like:
     // await this.databaseService.query('SELECT 1');
 
-    await new Promise(resolve => globalThis.setTimeout(resolve, Math.random() * 100)); // случайная задержка 0-100ms
+    await new Promise(resolve => globalThis.setTimeout(resolve, Math.random() * 100)); // random delay 0-100ms
 
-    // Симулируем редкие ошибки для демонстрации
+    // Simulate rare errors for demonstration
     if (Math.random() < 0.01) {
-      // 1% вероятность ошибки
+      // 1% error probability
       throw new Error('Database connection timeout');
     }
   }
 
   /**
-   * Получение количества активных соединений
-   * В реальном приложении получаем из пула соединений
+   * Get number of active connections
+   * In real application get from connection pool
    */
   private getActiveConnectionsCount(): number {
-    // Симуляция количества соединений
-    // В реальном приложении:
+    // Connections count simulation
+    // In real application:
     // return this.databaseService.getConnectionPool().activeConnections;
-    return Math.floor(Math.random() * 10) + 1; // 1-10 соединений
+    return Math.floor(Math.random() * 10) + 1; // 1-10 connections
   }
 }

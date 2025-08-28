@@ -6,7 +6,7 @@ describe('MonitoringService', () => {
   let service: MonitoringService;
 
   beforeEach(async () => {
-    // Очищаем регистр метрик перед каждым тестом
+    // Clear metrics register before each test
     register.clear();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -17,7 +17,7 @@ describe('MonitoringService', () => {
   });
 
   afterEach(() => {
-    // Очищаем метрики после каждого теста
+    // Clear metrics after each test
     service.clearMetrics();
   });
 
@@ -45,7 +45,7 @@ describe('MonitoringService', () => {
       const metrics = await service.httpRequestDuration.get();
       expect(metrics.values.length).toBeGreaterThan(0);
 
-      // Проверяем что есть значения с правильными лейблами
+      // Check that there are values with correct labels
       const hasCorrectLabels = metrics.values.some(
         value =>
           value.labels.method === 'POST' &&
@@ -93,7 +93,7 @@ describe('MonitoringService', () => {
       const metrics = await service.databaseQueryDuration.get();
       expect(metrics.values.length).toBeGreaterThan(0);
 
-      // Проверяем что есть значения с правильными лейблами
+      // Check that there are values with correct labels
       const hasCorrectLabels = metrics.values.some(
         value => value.labels.query_type === 'SELECT' && value.labels.table === 'users'
       );

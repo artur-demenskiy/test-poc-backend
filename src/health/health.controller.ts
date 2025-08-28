@@ -37,15 +37,15 @@ export class HealthController {
   })
   async healthz() {
     const result = await this._health.check([
-      // Добавляем проверку базы данных
+      // Add database check
       () => this.databaseHealthIndicator.isHealthy('database'),
     ]);
 
-    // Обновляем метрики состояния приложения
-    // Если health check прошел успешно, считаем приложение здоровым
+    // Update application state metrics
+    // If health check passed successfully, consider application healthy
     if (result.status === 'ok') {
-      // Здесь можно добавить специфичные метрики здоровья
-      // Например, время последней успешной проверки здоровья
+      // Here you can add specific health metrics
+      // For example, time of last successful health check
     }
 
     return result;
@@ -78,14 +78,14 @@ export class HealthController {
   })
   async readiness() {
     const result = await this._health.check([
-      // Для readiness также проверяем базу данных
+      // For readiness also check database
       () => this.databaseHealthIndicator.isHealthy('database'),
     ]);
 
-    // Обновляем метрики готовности приложения
+    // Update application readiness metrics
     if (result.status === 'ok') {
-      // Приложение готово принимать трафик
-      // Можно обновить метрику времени последней успешной проверки готовности
+      // Application ready to accept traffic
+      // Can update metric of last successful readiness check time
     }
 
     return result;

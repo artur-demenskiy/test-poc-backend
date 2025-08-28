@@ -2,19 +2,19 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { register, collectDefaultMetrics, Counter, Histogram, Gauge } from 'prom-client';
 
 /**
- * Сервис мониторинга для интеграции с Prometheus
+ * Monitoring service for Prometheus integration
  *
- * Предоставляет базовые метрики приложения:
- * - HTTP запросы (количество, время ответа, коды статусов)
- * - Системные метрики (CPU, память, GC и т.д.)
- * - Кастомные бизнес-метрики
+ * Provides basic application metrics:
+ * - HTTP requests (count, response time, status codes)
+ * - System metrics (CPU, memory, GC, etc.)
+ * - Custom business metrics
  *
- * Используется для экспорта метрик в формате Prometheus
- * для дальнейшей визуализации в Grafana
+ * Used for exporting metrics in Prometheus format
+ * for further visualization in Grafana
  */
 @Injectable()
 export class MonitoringService implements OnModuleInit {
-  // Счетчик HTTP запросов с лейблами для метода, пути и статуса
+  // HTTP requests counter with labels for method, path and status
   public readonly httpRequestsTotal = new Counter({
     name: 'http_requests_total',
     help: 'Total number of HTTP requests',
@@ -22,23 +22,23 @@ export class MonitoringService implements OnModuleInit {
     registers: [register],
   });
 
-  // Гистограмма времени выполнения HTTP запросов
+  // Histogram of HTTP request execution time
   public readonly httpRequestDuration = new Histogram({
     name: 'http_request_duration_seconds',
     help: 'Duration of HTTP requests in seconds',
     labelNames: ['method', 'route', 'status_code'],
-    buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10], // секунды
+    buckets: [0.1, 0.3, 0.5, 0.7, 1, 3, 5, 7, 10], // seconds
     registers: [register],
   });
 
-  // Счетчик активных соединений
+  // Active connections counter
   public readonly activeConnections = new Gauge({
     name: 'active_connections',
     help: 'Number of active connections',
     registers: [register],
   });
 
-  // Счетчик ошибок приложения
+  // Application errors counter
   public readonly applicationErrors = new Counter({
     name: 'application_errors_total',
     help: 'Total number of application errors',
@@ -46,7 +46,7 @@ export class MonitoringService implements OnModuleInit {
     registers: [register],
   });
 
-  // Метрики базы данных
+  // Database metrics
   public readonly databaseConnections = new Gauge({
     name: 'database_connections_active',
     help: 'Number of active database connections',
@@ -62,43 +62,43 @@ export class MonitoringService implements OnModuleInit {
   });
 
   onModuleInit() {
-    // Инициализация сбора стандартных метрик Node.js
-    // Включает метрики CPU, памяти, GC, event loop и т.д.
+    // Initialize collection of standard Node.js metrics
+    // Includes CPU, memory, GC, event loop metrics, etc.
     collectDefaultMetrics({
       register,
       prefix: 'nestjs_app_',
-      gcDurationBuckets: [0.001, 0.01, 0.1, 1, 2, 5], // секунды
+      gcDurationBuckets: [0.001, 0.01, 0.1, 1, 2, 5], // seconds
     });
   }
 
   /**
-   * Получить все метрики в формате Prometheus
-   * @returns Строка с метриками в формате Prometheus
+   * Get all metrics in Prometheus format
+   * @returns String with metrics in Prometheus format
    */
   async getMetrics(): Promise<string> {
     return register.metrics();
   }
 
   /**
-   * Получить метрики в JSON формате
-   * @returns Объект с метриками
+   * Get metrics in JSON format
+   * @returns Object with metrics
    */
   async getMetricsAsJson() {
     return register.getMetricsAsJSON();
   }
 
   /**
-   * Очистить все метрики (используется в тестах)
+   * Clear all metrics (used in tests)
    */
   clearMetrics(): void {
     register.clear();
   }
 
   /**
-   * Инкремент счетчика HTTP запросов
-   * @param method HTTP метод
-   * @param route Маршрут
-   * @param statusCode Код статуса
+   * Increment HTTP requests counter
+   * @param method HTTP method
+   * @param route Route
+   * @param statusCode Status code
    */
   incrementHttpRequests(method: string, route: string, statusCode: number): void {
     this.httpRequestsTotal.inc({
@@ -109,11 +109,11 @@ export class MonitoringService implements OnModuleInit {
   }
 
   /**
-   * Записать время выполнения HTTP запроса
-   * @param method HTTP метод
-   * @param route Маршрут
-   * @param statusCode Код статуса
-   * @param duration Время выполнения в секундах
+   * Record HTTP request execution time
+   * @param method HTTP method
+   * @param route Route
+   * @param statusCode Status code
+   * @param duration Execution time in seconds
    */
   recordHttpRequestDuration(
     method: string,
@@ -132,9 +132,9 @@ export class MonitoringService implements OnModuleInit {
   }
 
   /**
-   * Инкремент счетчика ошибок приложения
-   * @param errorType Тип ошибки
-   * @param endpoint Эндпоинт где произошла ошибка
+   * Increment application errors counter
+   * @param errorType Error type
+   * @param endpoint Endpoint where error occurred
    */
   incrementApplicationErrors(errorType: string, endpoint: string): void {
     this.applicationErrors.inc({
@@ -144,18 +144,18 @@ export class MonitoringService implements OnModuleInit {
   }
 
   /**
-   * Установить количество активных соединений
-   * @param count Количество соединений
+   * Set number of active connections
+   * @param count Number of connections
    */
   setActiveConnections(count: number): void {
     this.activeConnections.set(count);
   }
 
   /**
-   * Записать время выполнения запроса к БД
-   * @param queryType Тип запроса (SELECT, INSERT, UPDATE, DELETE)
-   * @param table Таблица
-   * @param duration Время выполнения в секундах
+   * Record database query execution time
+   * @param queryType Query type (SELECT, INSERT, UPDATE, DELETE)
+   * @param table Table
+   * @param duration Execution time in seconds
    */
   recordDatabaseQueryDuration(queryType: string, table: string, duration: number): void {
     this.databaseQueryDuration.observe(
@@ -168,8 +168,8 @@ export class MonitoringService implements OnModuleInit {
   }
 
   /**
-   * Установить количество активных соединений с БД
-   * @param count Количество соединений
+   * Set number of active database connections
+   * @param count Number of connections
    */
   setDatabaseConnections(count: number): void {
     this.databaseConnections.set(count);

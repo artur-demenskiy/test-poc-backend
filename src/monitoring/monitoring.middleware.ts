@@ -3,15 +3,15 @@ import { Request, Response, NextFunction } from 'express';
 import { MonitoringService } from './monitoring.service';
 
 /**
- * Middleware для сбора HTTP метрик
+ * Middleware for collecting HTTP metrics
  *
- * Автоматически собирает метрики для всех HTTP запросов:
- * - Количество запросов по методам, маршрутам и статус кодам
- * - Время выполнения запросов
- * - Счетчик ошибок
+ * Automatically collects metrics for all HTTP requests:
+ * - Number of requests by methods, routes and status codes
+ * - Request execution time
+ * - Error counter
  *
- * Применяется глобально ко всем маршрутам приложения
- * для автоматического мониторинга без изменения бизнес-логики
+ * Applied globally to all application routes
+ * for automatic monitoring without changing business logic
  */
 @Injectable()
 export class MonitoringMiddleware implements NestMiddleware {
@@ -20,23 +20,23 @@ export class MonitoringMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction): void {
     const startTime = Date.now();
 
-    // Получаем базовую информацию о запросе
+    // Get basic request information
     const method = req.method;
     const originalUrl = req.originalUrl || req.url;
 
-    // Нормализуем маршрут для метрик (убираем query параметры и ID)
+    // Normalize route for metrics (remove query parameters and ID)
     const route = this.normalizeRoute(originalUrl);
 
-    // Перехватываем завершение ответа
+    // Intercept response completion
     res.on('finish', () => {
-      const duration = (Date.now() - startTime) / 1000; // конвертируем в секунды
+      const duration = (Date.now() - startTime) / 1000; // convert to seconds
       const statusCode = res.statusCode;
 
-      // Записываем метрики
+      // Record metrics
       this.monitoringService.incrementHttpRequests(method, route, statusCode);
       this.monitoringService.recordHttpRequestDuration(method, route, statusCode, duration);
 
-      // Записываем ошибки для статус кодов >= 400
+      // Record errors for status codes >= 400
       if (statusCode >= 400) {
         const errorType = this.getErrorType(statusCode);
         this.monitoringService.incrementApplicationErrors(errorType, route);
@@ -47,19 +47,19 @@ export class MonitoringMiddleware implements NestMiddleware {
   }
 
   /**
-   * Нормализует маршрут для метрик
+   * Normalizes route for metrics
    *
-   * Убирает query параметры и заменяет числовые ID на плейсхолдеры
-   * для уменьшения кардинальности метрик
+   * Removes query parameters and replaces numeric IDs with placeholders
+   * to reduce metrics cardinality
    *
-   * @param url Исходный URL
-   * @returns Нормализованный маршрут
+   * @param url Original URL
+   * @returns Normalized route
    */
   private normalizeRoute(url: string): string {
-    // Убираем query параметры
+    // Remove query parameters
     const pathWithoutQuery = url.split('?')[0];
 
-    // Заменяем числовые ID на плейсхолдеры для снижения кардинальности
+    // Replace numeric IDs with placeholders to reduce cardinality
     const normalizedPath = pathWithoutQuery
       .replace(/\/\d+/g, '/:id') // /users/123 -> /users/:id
       .replace(/\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/gi, '/:uuid'); // UUID -> :uuid
@@ -68,10 +68,10 @@ export class MonitoringMiddleware implements NestMiddleware {
   }
 
   /**
-   * Определяет тип ошибки по статус коду
+   * Determines error type by status code
    *
-   * @param statusCode HTTP статус код
-   * @returns Тип ошибки для метрик
+   * @param statusCode HTTP status code
+   * @returns Error type for metrics
    */
   private getErrorType(statusCode: number): string {
     if (statusCode >= 400 && statusCode < 500) {
