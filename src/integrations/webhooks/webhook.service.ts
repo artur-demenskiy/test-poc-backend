@@ -271,7 +271,7 @@ export class WebhookService implements OnModuleInit {
         delivery.nextRetryAt = nextRetryAt;
 
         // Schedule retry
-        global.setTimeout(() => {
+        setTimeout(() => {
           this.retryWebhook(webhook, event, payload, deliveryId, attempt + 1);
         }, this.calculateRetryDelay(attempt, webhook.retry));
       }
