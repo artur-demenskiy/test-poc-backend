@@ -37,26 +37,62 @@ This document describes the comprehensive integrations and ETL system implemente
 - **Historical metrics** tracking
 - **Automated cleanup** of old data
 
-### 5. Message Queues (Planned)
-- **Multiple queue providers** (RabbitMQ, Redis, Kafka, SQS)
-- **Producer/consumer patterns**
+# Integrations and ETL System
+
+This document describes the comprehensive integrations and ETL system implemented in the NestJS boilerplate, including webhooks, API integrations, ETL pipelines, message queues, event sourcing, and CQRS patterns.
+
+## 🚀 Features
+
+### 1. Webhook System ✅
+- **Dynamic webhook configurations** for event-driven integrations
+- **Multiple authentication methods** (Basic, Bearer, HMAC, Custom)
+- **Retry mechanisms** with exponential backoff
+- **Delivery tracking** and audit logging
+- **Event-based triggering** with payload customization
+- **Rate limiting** and error handling
+
+### 2. API Integrations ✅
+- **Third-party API management** (Stripe, GitHub, Slack, etc.)
+- **Multiple authentication types** (API Key, Bearer, OAuth2, Basic)
+- **Rate limiting** with distributed support
+- **Request/response interceptors** for logging and monitoring
+- **OAuth2 flow** support with authorization URLs
+- **Health checks** and connectivity testing
+
+### 3. ETL Pipelines ✅
+- **Data extraction** from multiple sources (API, Database, Files, Message Queues, Streams)
+- **Transformation** with mapping, filtering, and aggregation
+- **Loading** to various destinations (Database, API, Files, Message Queues, Data Warehouses)
+- **Scheduled execution** with cron expressions
+- **Error handling** and notification systems
+- **Incremental loading** support
+- **Dry run** capabilities for testing
+
+### 4. Integration Monitoring ✅
+- **Real-time health checks** for all integration types
+- **Performance metrics** collection and analysis
+- **Alert system** for unhealthy integrations
+- **Dashboard** with system overview
+- **Historical metrics** tracking
+- **Automated cleanup** of old data
+
+### 5. Message Queue System ✅
+- **Multi-provider support** (RabbitMQ, Redis, Kafka)
+- **Producer/Consumer management** with automatic scaling
+- **Message persistence** and delivery guarantees
 - **Dead letter queues** for failed messages
-- **Message persistence** and durability
-- **Queue monitoring** and metrics
+- **Retry mechanisms** with configurable policies
+- **Queue statistics** and health monitoring
+- **Event-driven architecture** with event subscriptions
 
-### 6. Event Sourcing (Planned)
-- **Event store** with versioning
-- **Event serialization** (JSON, Avro, Protobuf)
-- **Snapshot management** for performance
-- **Event replay** capabilities
-- **Aggregate reconstruction**
-
-### 7. CQRS Pattern (Planned)
-- **Command/Query separation**
-- **Event-driven architecture**
-- **Read/write model separation**
-- **Event handlers** and projections
-- **Consistency patterns**
+### 6. CQRS Pattern ✅
+- **Command/Query separation** for optimized read/write operations
+- **Event sourcing** with full audit trail
+- **Event store** with versioning and concurrency control
+- **Projections** for read-optimized views
+- **Aggregate pattern** with domain-driven design
+- **Event-driven architecture** with event handlers
+- **Snapshot management** for performance optimization
 
 ## 📁 Project Structure
 
@@ -161,6 +197,42 @@ src/integrations/
 | GET | `/monitoring/performance/:integrationId` | Get performance metrics for integration |
 | GET | `/monitoring/alerts` | Get integration alerts |
 | GET | `/monitoring/dashboard` | Get health dashboard data |
+
+### Message Queues
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/message-queues` | Get all queue configurations |
+| GET | `/message-queues/:name` | Get queue configuration by name |
+| POST | `/message-queues` | Create new queue configuration |
+| PUT | `/message-queues/:name` | Update queue configuration |
+| DELETE | `/message-queues/:name` | Delete queue configuration |
+| POST | `/message-queues/:name/publish` | Publish message to queue |
+| POST | `/message-queues/:name/consume` | Start consumer for queue |
+| GET | `/message-queues/:name/stats` | Get queue statistics |
+| GET | `/message-queues/:name/health` | Get queue health status |
+| GET | `/message-queues/:name/metrics` | Get queue metrics |
+| GET | `/message-queues/stats/all` | Get all queue statistics |
+| GET | `/message-queues/health/all` | Get all queue health statuses |
+| GET | `/message-queues/overview` | Get message queue system overview |
+| POST | `/message-queues/health/check` | Perform health check for all queues |
+| POST | `/message-queues/events/subscribe` | Subscribe to queue events |
+
+### CQRS
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/cqrs/commands` | Execute a command |
+| POST | `/cqrs/queries` | Execute a query |
+| POST | `/cqrs/events` | Publish an event |
+| POST | `/cqrs/projections` | Create a projection |
+| GET | `/cqrs/projections` | Get all projections |
+| GET | `/cqrs/projections/:id` | Get projection by ID |
+| GET | `/cqrs/stats/event-store` | Get event store statistics |
+| GET | `/cqrs/stats/projections` | Get projection statistics |
+| GET | `/cqrs/overview` | Get CQRS system overview |
+| GET | `/cqrs/events` | Get events by criteria |
+| GET | `/cqrs/events/:id` | Get event by ID |
 
 ## 💡 Usage Examples
 
@@ -417,6 +489,233 @@ export class HealthService {
 
   async getIntegrationPerformance(integrationId: string) {
     return this.monitorService.getPerformanceMetrics(integrationId, '24h');
+  }
+}
+```
+
+### Message Queues
+
+#### Creating a Message Queue
+
+```typescript
+import { MessageQueueService } from './integrations/message-queues/message-queue.service';
+
+@Injectable()
+export class QueueService {
+  constructor(private readonly messageQueueService: MessageQueueService) {}
+
+  async createOrderQueue() {
+    const queueName = await this.messageQueueService.createQueue({
+      name: 'order-events',
+      type: 'rabbitmq',
+      connection: {
+        host: 'localhost',
+        port: 5672,
+        username: 'guest',
+        password: 'guest',
+        vhost: '/',
+      },
+      queue: {
+        name: 'orders',
+        durable: true,
+        exclusive: false,
+        autoDelete: false,
+      },
+      exchange: {
+        name: 'order-exchange',
+        type: 'direct',
+        durable: true,
+        autoDelete: false,
+        routingKey: 'order',
+      },
+      durable: true,
+      autoDelete: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return queueName;
+  }
+}
+```
+
+#### Publishing Messages
+
+```typescript
+import { MessageQueueService } from './integrations/message-queues/message-queue.service';
+
+@Injectable()
+export class OrderService {
+  constructor(private readonly messageQueueService: MessageQueueService) {}
+
+  async createOrder(orderData: any) {
+    // Create order logic here...
+
+    // Publish order created event
+    await this.messageQueueService.publishMessage('order-events', {
+      id: `msg_${Date.now()}_${Math.random()}`,
+      type: 'order.created',
+      data: {
+        orderId: order.id,
+        customerId: order.customerId,
+        amount: order.amount,
+        items: order.items,
+      },
+      metadata: {
+        source: 'order-service',
+        version: '1.0',
+      },
+      timestamp: new Date(),
+      priority: 1,
+      correlationId: order.id,
+    });
+
+    return order;
+  }
+}
+```
+
+#### Consuming Messages
+
+```typescript
+import { MessageQueueService } from './integrations/message-queues/message-queue.service';
+
+@Injectable()
+export class NotificationService {
+  constructor(private readonly messageQueueService: MessageQueueService) {}
+
+  async startOrderNotificationConsumer() {
+    const handler = async (message: any) => {
+      if (message.type === 'order.created') {
+        await this.sendOrderNotification(message.data);
+      } else if (message.type === 'order.updated') {
+        await this.updateOrderNotification(message.data);
+      }
+    };
+
+    await this.messageQueueService.startConsumer('order-events', handler);
+  }
+
+  private async sendOrderNotification(orderData: any) {
+    // Send notification logic
+    console.log(`Sending notification for order: ${orderData.orderId}`);
+  }
+}
+```
+
+### CQRS
+
+#### Executing Commands
+
+```typescript
+import { CqrsService } from './integrations/cqrs/cqrs.service';
+
+@Injectable()
+export class UserService {
+  constructor(private readonly cqrsService: CqrsService) {}
+
+  async createUser(userData: any) {
+    const command = {
+      id: `cmd_${Date.now()}_${Math.random()}`,
+      type: 'CreateUser',
+      data: {
+        name: userData.name,
+        email: userData.email,
+        password: userData.password,
+      },
+      metadata: {
+        source: 'user-service',
+      },
+      timestamp: new Date(),
+      userId: 'system',
+      correlationId: `corr_${Date.now()}`,
+    };
+
+    const result = await this.cqrsService.executeCommand(command);
+    return result;
+  }
+}
+```
+
+#### Publishing Events
+
+```typescript
+import { CqrsService } from './integrations/cqrs/cqrs.service';
+
+@Injectable()
+export class EventService {
+  constructor(private readonly cqrsService: CqrsService) {}
+
+  async publishUserCreatedEvent(userId: string, userData: any) {
+    const event = {
+      id: `evt_${Date.now()}_${Math.random()}`,
+      type: 'UserCreated',
+      aggregateId: userId,
+      aggregateType: 'User',
+      version: 1,
+      data: {
+        name: userData.name,
+        email: userData.email,
+        createdAt: new Date(),
+      },
+      metadata: {
+        source: 'user-service',
+      },
+      timestamp: new Date(),
+      sequenceNumber: 1,
+      correlationId: `corr_${Date.now()}`,
+    };
+
+    await this.cqrsService.publishEvent(event);
+  }
+}
+```
+
+#### Creating Projections
+
+```typescript
+import { CqrsService } from './integrations/cqrs/cqrs.service';
+
+@Injectable()
+export class ProjectionService {
+  constructor(private readonly cqrsService: CqrsService) {}
+
+  async createUserProjection() {
+    const projection = {
+      id: `proj_${Date.now()}_${Math.random()}`,
+      name: 'UserProjection',
+      type: 'User',
+      state: {
+        totalUsers: 0,
+        activeUsers: 0,
+        usersByStatus: {},
+      },
+      version: 1,
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const projectionId = await this.cqrsService.createProjection(projection);
+
+    // Register projection handler
+    this.cqrsService.registerProjectionHandler(projectionId, {
+      handle: async (event: any, projection: any) => {
+        if (event.type === 'UserCreated') {
+          projection.state.totalUsers++;
+          projection.state.usersByStatus[event.data.status] = 
+            (projection.state.usersByStatus[event.data.status] || 0) + 1;
+        }
+        return projection;
+      },
+      getById: async (id: string) => projection,
+      save: async (proj: any) => {},
+      delete: async (id: string) => {},
+      reset: async (id: string) => {},
+      getStats: async () => ({ totalProjections: 1 }),
+    });
+
+    return projectionId;
   }
 }
 ```
